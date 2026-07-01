@@ -368,12 +368,26 @@
             try {
                 const cloudEvents = JSON.parse(textData);
                 if (Array.isArray(cloudEvents)) {
+                    // Cấu trúc map thông minh chống lỗi lệch hoa thường từ GSheet gửi về
                     events = cloudEvents.map(item => {
-                        let formattedDate = item.date;
-                        if(item.date && String(item.date).includes('T')) {
-                            formattedDate = String(item.date).split('T')[0];
+                        let rawTitle = item.title || item.Title || item.TITLE || "Sự kiện không tên";
+                        let rawDate = item.date || item.Date || item.DATE || "";
+                        let rawCategory = item.category || item.Category || item.CATEGORY || "giayto";
+                        let rawId = item.id || item.Id || item.ID || Date.now();
+                        let rawRepeatValue = item.repeatValue || item.RepeatValue || 0;
+                        let rawRepeatUnit = item.repeatUnit || item.RepeatUnit || "none";
+
+                        if(rawDate && String(rawDate).includes('T')) {
+                            rawDate = String(rawDate).split('T')[0];
                         }
-                        return { ...item, date: formattedDate };
+                        return {
+                            id: rawId,
+                            title: rawTitle,
+                            date: rawDate,
+                            category: rawCategory,
+                            repeatValue: parseInt(rawRepeatValue) || 0,
+                            repeatUnit: rawRepeatUnit
+                        };
                     });
                     
                     localStorage.setItem('countdown_events_v3', JSON.stringify(events));
@@ -382,7 +396,7 @@
                 }
             } catch(jsonErr) {
                 console.error("Dữ liệu đám mây trả về lỗi cấu trúc:", textData);
-                throw new Error("Lỗi phân quyền hoặc link sai cấu trúc.");
+                showSyncStatus("❌ Lỗi phân giải JSON từ Cloud.", "sync-failed");
             }
         })
         .catch(err => {
@@ -498,36 +512,30 @@
         }
     }
 
-    // THUẬT TOÁN ĐÃ ĐƯỢC NÂNG CẤP ĐỂ ĐỌC CHUỖI NGÀY MỘT CÁCH CHÍNH XÁC NHẤT
     function getNextOccurrence(startDateStr, repeatValue, repeatUnit, today) {
         if (!startDateStr) return new Date();
         
         let safeDateStr = String(startDateStr).trim();
         let targetDate;
 
-        // Xử lý nếu chuỗi ngày từ Google Sheet bị gửi dạng DD/MM/YYYY
         if (safeDateStr.includes('/')) {
             let parts = safeDateStr.split('/');
             if (parts.length === 3) {
-                // Chuyển về dạng YYYY, MM (0-11), DD để khởi tạo thủ công tránh lỗi múi giờ
                 targetDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
             }
         } 
-        // Xử lý nếu chuỗi ngày có dạng YYYY-MM-DD
         else if (safeDateStr.includes('-')) {
-            let cleanDate = safeDateStr.split('T')[0].split(' ')[0]; // Bỏ bớt phần giờ thừa
+            let cleanDate = safeDateStr.split('T')[0].split(' ')[0];
             let parts = cleanDate.split('-');
             if (parts.length === 3) {
                 targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
             }
         }
 
-        // Phương án bọc lót cuối cùng nếu các bộ tách chuỗi trên không chạy được
         if (!targetDate || isNaN(targetDate.getTime())) {
             targetDate = new Date(safeDateStr);
         }
 
-        // Nếu tất cả phương án đều thất bại, bắt buộc dùng ngày hiện tại để tránh sập app
         if (isNaN(targetDate.getTime())) {
             targetDate = new Date();
         }
@@ -538,7 +546,6 @@
             return targetDate;
         }
 
-        // Tính chu kỳ tương lai nếu sự kiện đã quá hạn
         while (targetDate < today) {
             if (repeatUnit === 'days') targetDate.setDate(targetDate.getDate() + repeatValue);
             else if (repeatUnit === 'weeks') targetDate.setDate(targetDate.getDate() + (repeatValue * 7));
@@ -608,6 +615,7 @@
         switchView(currentView);
     }
 
+    // Tự động kích hoạt render dữ liệu sẵn có
     renderEvents();
 </script>
 
