@@ -37,7 +37,6 @@
             margin-bottom: 25px;
         }
 
-        /* Thanh trạng thái đồng bộ */
         .sync-status {
             text-align: center;
             font-size: 13px;
@@ -51,7 +50,6 @@
         .sync-success { background: #d1fae5; color: #065f46; }
         .sync-failed { background: #fee2e2; color: #b91c1c; }
 
-        /* Khung cấu hình link Google Script */
         .config-container {
             background: #fffbeb;
             border: 1px solid #fef3c7;
@@ -79,7 +77,6 @@
             cursor: pointer;
         }
 
-        /* Bảng Ghi Chú */
         .note-box {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(10px);
@@ -103,7 +100,6 @@
             display: inline-block;
         }
 
-        /* Form nhập liệu */
         .form-container {
             background-color: var(--card-bg);
             padding: 25px;
@@ -129,9 +125,7 @@
         }
 
         @media (max-width: 950px) {
-            .form-group {
-                grid-template-columns: 1fr;
-            }
+            .form-group { grid-template-columns: 1fr; }
         }
 
         label {
@@ -163,17 +157,13 @@
             background: linear-gradient(135deg, #f59e0b, #d97706);
         }
 
-        /* Thanh công cụ điều khiển */
         .toolbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
-        .toolbar-buttons {
-            display: flex;
-            gap: 10px;
-        }
+        .toolbar-buttons { display: flex; gap: 10px; }
 
         .view-btn, .sync-manual-btn {
             width: auto;
@@ -191,15 +181,8 @@
             color: white;
         }
 
-        /* DANH SÁCH SỰ KIỆN */
-        .events-list {
-            display: grid;
-            gap: 15px;
-        }
-
-        .events-list.grid-view {
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        }
+        .events-list { display: grid; gap: 15px; }
+        .events-list.grid-view { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 
         .event-card {
             background-color: var(--card-bg);
@@ -254,22 +237,17 @@
         .warning .days-left { color: var(--warning-color); }
         .safe .days-left { color: var(--success-color); }
 
-        .action-btns {
-            display: flex;
-            gap: 6px;
-        }
+        .action-btns { display: flex; gap: 6px; }
 
         .edit-btn {
             background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a;
-            font-size: 14px; cursor: pointer; width: auto; padding: 6px 10px; border-radius: 6px;
-            font-weight: 600;
+            font-size: 14px; cursor: pointer; width: auto; padding: 6px 10px; border-radius: 6px; font-weight: 600;
         }
         .edit-btn:hover { background-color: #f59e0b; color: white; }
 
         .delete-btn {
             background-color: #fff1f2; color: #f43f5e; border: 1px solid #ffe4e6;
-            font-size: 14px; cursor: pointer; width: auto; padding: 6px 10px; border-radius: 6px;
-            font-weight: 600;
+            font-size: 14px; cursor: pointer; width: auto; padding: 6px 10px; border-radius: 6px; font-weight: 600;
         }
         .delete-btn:hover { background-color: var(--danger-color); color: white; }
     </style>
@@ -278,7 +256,6 @@
 
 <div class="container">
     <h1>📅 Trợ Lý Đếm Ngược & Nhắc Nhở Email</h1>
-
     <div id="syncStatusBox" class="sync-status"></div>
 
     <div class="config-container">
@@ -351,7 +328,7 @@
 <script>
     let events = JSON.parse(localStorage.getItem('countdown_events_v3')) || [];
     let currentView = localStorage.getItem('countdown_view_pref') || 'list';
-    let editModeId = null; // Quản lý ID sự kiện đang được sửa
+    let editModeId = null;
 
     document.getElementById('scriptUrlInput').value = localStorage.getItem('google_script_url_pref') || '';
 
@@ -374,10 +351,7 @@
 
         showSyncStatus("🔄 Đang đồng bộ và kiểm tra dữ liệu với đám mây...", "sync-loading", 0);
 
-        fetch(savedScriptUrl, {
-            method: "GET",
-            redirect: "follow"
-        })
+        fetch(savedScriptUrl, { method: "GET", redirect: "follow" })
         .then(response => {
             if (!response.ok) throw new Error('Không thể kết nối tới Google Server');
             return response.text();
@@ -398,7 +372,7 @@
                             rawDate = String(rawDate).split('T')[0];
                         }
                         return {
-                            id: rawId,
+                            id: Number(rawId),
                             title: rawTitle,
                             date: rawDate,
                             category: rawCategory,
@@ -412,12 +386,10 @@
                     showSyncStatus("✅ Đã đồng bộ dữ liệu mới nhất thành công!", "sync-success");
                 }
             } catch(jsonErr) {
-                console.error("Dữ liệu đám mây trả về lỗi cấu trúc:", textData);
                 showSyncStatus("❌ Lỗi phân giải JSON từ Cloud.", "sync-failed");
             }
         })
         .catch(err => {
-            console.error("Lỗi đồng bộ chi tiết:", err);
             showSyncStatus("❌ Lỗi đồng bộ đám mây: " + err.message, "sync-failed");
         });
     }
@@ -438,7 +410,6 @@
     function switchView(viewType) {
         currentView = viewType;
         localStorage.setItem('countdown_view_pref', viewType);
-        
         const listElement = document.getElementById('eventsList');
         const listBtn = document.getElementById('listViewBtn');
         const gridBtn = document.getElementById('gridViewBtn');
@@ -459,7 +430,6 @@
         renderEvents();
     }
 
-    // ĐIỀU HƯỚNG SỰ KIỆN: THÊM MỚI HOẶC SỬA
     function handleSubmitEvent() {
         if (editModeId !== null) {
             updateEvent();
@@ -506,22 +476,18 @@
                 mode: "no-cors",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(newEvent)
-            }).catch(err => console.error("Lỗi thêm:", err));
+            }).catch(err => console.error(err));
         }
-
         resetForm();
     }
 
-    // CHỨC NĂNG 1: ĐIỀN DỮ LIỆU LÊN FORM ĐỂ SỬA
     function startEditEvent(id) {
-        const target = events.find(e => e.id === id);
+        const target = events.find(e => Number(e.id) === Number(id));
         if(!target) return;
 
         editModeId = id;
         document.getElementById('eventTitle').value = target.title;
-        
-        let cleanDate = String(target.date).split('T')[0];
-        document.getElementById('eventDate').value = cleanDate;
+        document.getElementById('eventDate').value = String(target.date).split('T')[0];
         document.getElementById('eventCategory').value = target.category;
 
         if (target.repeatUnit && target.repeatUnit !== 'none') {
@@ -533,17 +499,12 @@
         }
 
         toggleRepeatUnit();
-
-        // Đổi giao diện nút bấm sang màu Cam Update
         const submitBtn = document.getElementById('submitEventBtn');
         submitBtn.innerText = "Cập nhật";
         submitBtn.classList.add('btn-update-mode');
-        
-        // Cuộn màn hình lên đầu để người dùng sửa tiện lợi
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // CHỨC NĂNG 2: THỰC THI LỆNH LƯU CẬP NHẬT LÊN MÁY VÀ CLOUD
     function updateEvent() {
         const title = document.getElementById('eventTitle').value.trim();
         const date = document.getElementById('eventDate').value;
@@ -564,9 +525,8 @@
             return;
         }
 
-        // Cập nhật mảng Local
         events = events.map(e => {
-            if(e.id === editModeId) {
+            if(Number(e.id) === Number(editModeId)) {
                 return { ...e, title: title, date: date, category: category, repeatValue: repeatValue, repeatUnit: repeatUnit };
             }
             return e;
@@ -574,16 +534,22 @@
 
         saveEvents();
 
-        // Gửi đè dữ liệu lên Google Sheet qua cơ chế POST hành động edit
         if(savedScriptUrl !== "") {
             fetch(savedScriptUrl, {
                 method: "POST",
                 mode: "no-cors",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "edit", id: editModeId, title: title, date: date, category: category, repeatValue: repeatValue, repeatUnit: repeatUnit })
-            }).catch(err => console.error("Lỗi gửi cập nhật:", err));
+                body: JSON.stringify({ 
+                    action: "edit", 
+                    id: editModeId, 
+                    title: title, 
+                    date: date, 
+                    category: category, 
+                    repeatValue: repeatValue, 
+                    repeatUnit: repeatUnit 
+                })
+            }).catch(err => console.error(err));
         }
-
         resetForm();
     }
 
@@ -602,17 +568,15 @@
     function deleteEvent(id) {
         if(confirm('Bạn có chắc muốn xóa mục này?')) {
             const savedScriptUrl = localStorage.getItem('google_script_url_pref') || '';
-            
             if(savedScriptUrl !== "") {
                 fetch(savedScriptUrl, {
                     method: "POST",
                     mode: "no-cors",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ action: "delete", id: id })
-                }).catch(err => console.error("Lỗi xóa Cloud:", err));
+                }).catch(err => console.error(err));
             }
-
-            events = events.filter(event => event.id !== id);
+            events = events.filter(event => Number(event.id) !== Number(id));
             saveEvents();
             if (editModeId === id) resetForm();
         }
@@ -620,37 +584,24 @@
 
     function getNextOccurrence(startDateStr, repeatValue, repeatUnit, today) {
         if (!startDateStr) return new Date();
-        
         let safeDateStr = String(startDateStr).trim();
         let targetDate;
 
         if (safeDateStr.includes('/')) {
             let parts = safeDateStr.split('/');
-            if (parts.length === 3) {
-                targetDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-            }
+            if (parts.length === 3) targetDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
         } 
         else if (safeDateStr.includes('-')) {
             let cleanDate = safeDateStr.split('T')[0].split(' ')[0];
             let parts = cleanDate.split('-');
-            if (parts.length === 3) {
-                targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            }
+            if (parts.length === 3) targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
         }
 
-        if (!targetDate || isNaN(targetDate.getTime())) {
-            targetDate = new Date(safeDateStr);
-        }
-
-        if (isNaN(targetDate.getTime())) {
-            targetDate = new Date();
-        }
+        if (!targetDate || isNaN(targetDate.getTime())) targetDate = new Date(safeDateStr);
+        if (isNaN(targetDate.getTime())) targetDate = new Date();
         
         targetDate.setHours(0,0,0,0);
-
-        if (repeatUnit === 'none' || targetDate >= today) {
-            return targetDate;
-        }
+        if (repeatUnit === 'none' || targetDate >= today) return targetDate;
 
         while (targetDate < today) {
             if (repeatUnit === 'days') targetDate.setDate(targetDate.getDate() + repeatValue);
@@ -664,7 +615,6 @@
     function renderEvents() {
         const listElement = document.getElementById('eventsList');
         listElement.innerHTML = '';
-
         if (events.length === 0) {
             listElement.innerHTML = '<p style="text-align:center; color:#64748b; grid-column: 1/-1; padding: 30px;">Chưa có sự kiện nào.</p>';
             return;
@@ -677,7 +627,6 @@
             const computedTargetDate = getNextOccurrence(event.date, event.repeatValue, event.repeatUnit, today);
             const timeDiff = computedTargetDate.getTime() - today.getTime();
             const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
-
             return { ...event, computedTargetDate: computedTargetDate, daysLeft: daysLeft };
         });
 
@@ -720,12 +669,10 @@
             `;
             listElement.appendChild(card);
         });
-
         switchView(currentView);
     }
 
     renderEvents();
 </script>
-
 </body>
 </html>
