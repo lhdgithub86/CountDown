@@ -502,7 +502,27 @@ fetch(savedScriptUrl, {
     }
 
     function getNextOccurrence(startDateStr, repeatValue, repeatUnit, today) {
-        let targetDate = new Date(startDateStr);
+        // Thay thế dấu gạch chéo thành gạch ngang nếu có và chuẩn hóa chuỗi
+        let safeDateStr = String(startDateStr).replace(/\//g, '-');
+        
+        // Nếu chuỗi chỉ có yyyy-MM-dd, thêm giờ vào để tránh lỗi lệch múi giờ trên các trình duyệt khác nhau
+        if (safeDateStr.length === 10) {
+            safeDateStr += "T00:00:00";
+        }
+
+        let targetDate = new Date(safeDateStr);
+        
+        // Trường hợp khẩn cấp nếu vẫn bị NaN (do trình duyệt cũ hoặc lỗi chuỗi)
+        if (isNaN(targetDate.getTime())) {
+            // Tách thủ công yyyy, MM, dd
+            const parts = safeDateStr.split('T')[0].split('-');
+            if (parts.length === 3) {
+                targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            } else {
+                targetDate = new Date(); // Lấy ngày hôm nay làm mốc cứu hộ tránh sập giao diện
+            }
+        }
+        
         targetDate.setHours(0,0,0,0);
 
         if (repeatUnit === 'none' || targetDate >= today) {
