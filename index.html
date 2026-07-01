@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trợ Lý Đếm Ngược & Nhắc Nhở Email</title>
+    
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #4f46e5, #3b82f6);
@@ -58,6 +59,7 @@
             border-radius: 12px;
             margin-bottom: 20px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            text-align: left;
         }
         .config-group {
             display: flex;
@@ -89,6 +91,7 @@
             color: #1e40af;
             box-shadow: 0 4px 15px rgba(0,0,0,0.03);
             line-height: 1.6;
+            text-align: left;
         }
         .note-box span {
             background: #ffffff;
@@ -185,7 +188,7 @@
             color: white;
         }
 
-        /* Hiệu ứng trượt mượt mà cho vùng cấu hình */
+        /* Vùng bọc cấu hình đóng mở */
         .config-wrapper {
             display: none;
             margin-top: 15px;
@@ -274,8 +277,8 @@
 
     <div id="syncStatusBox" class="sync-status"></div>
 
-    <div style="margin-bottom: 25px;">
-        <button class="btn-toggle-config" id="toggleConfigBtn" onclick="toggleConfigArea()" style="font-size: 13px; display: flex; align-items: center; gap: 6px;">
+    <div style="margin-bottom: 25px; text-align: center;">
+        <button class="btn-toggle-config" id="toggleConfigBtn" onclick="toggleConfigArea()" style="font-size: 13px; display: inline-flex; align-items: center; gap: 6px; width: auto; margin: 0 auto;">
             ⚙️ Hiện Cấu Hình & Ghi Chú
         </button>
 
@@ -350,22 +353,12 @@
 </div>
 
 <script>
+    // 1. KHỞI TẠO BIẾN TOÀN CỤC VÀ ĐỌC DỮ LIỆU CŨ TỪ MÁY
     let events = JSON.parse(localStorage.getItem('countdown_events_v3')) || [];
     let currentView = localStorage.getItem('countdown_view_pref') || 'list';
-
     document.getElementById('scriptUrlInput').value = localStorage.getItem('google_script_url_pref') || '';
 
-    function showSyncStatus(text, className, duration = 3000) {
-        const box = document.getElementById('syncStatusBox');
-        box.innerText = text;
-        box.className = `sync-status ${className}`;
-        box.style.display = 'block';
-        if(duration > 0) {
-            setTimeout(() => { box.style.display = 'none'; }, duration);
-        }
-    }
-
-    // Hàm Xử Lý Ẩn / Hiện Cấu hình
+    // 2. HÀM ĐÓNG / MỞ KHU VỰC CẤU HÌNH & GHI CHÚ
     function toggleConfigArea() {
         const area = document.getElementById('configArea');
         const btn = document.getElementById('toggleConfigBtn');
@@ -380,6 +373,18 @@
         }
     }
 
+    // 3. HÀM THÔNG BÁO TRẠNG THÁI ĐỒNG BỘ LÊN MÀN HÌNH
+    function showSyncStatus(text, className, duration = 3000) {
+        const box = document.getElementById('syncStatusBox');
+        box.innerText = text;
+        box.className = `sync-status ${className}`;
+        box.style.display = 'block';
+        if(duration > 0) {
+            setTimeout(() => { box.style.display = 'none'; }, duration);
+        }
+    }
+
+    // 4. HÀM ĐỒNG BỘ: TẢI TOÀN BỘ DỮ LIỆU TỪ GSHEET VỀ MÁY
     function syncFromCloud() {
         const savedScriptUrl = localStorage.getItem('google_script_url_pref') || '';
         if (!savedScriptUrl) {
@@ -424,6 +429,7 @@
         });
     }
 
+    // 5. HÀM LƯU ĐƯỜNG DẪN GOOGLE APPS SCRIPT KHI CẤU HÌNH TRÊN WEB
     function saveConfigUrl() {
         const url = document.getElementById('scriptUrlInput').value.trim();
         localStorage.setItem('google_script_url_pref', url);
@@ -431,12 +437,14 @@
         syncFromCloud();
     }
 
+    // 6. HÀM ẨN/HIỆN Ô CHỌN CHU KỲ THEO ĐỊNH KỲ TÙY CHỌN
     function toggleRepeatUnit() {
         const repeatType = document.getElementById('repeatType').value;
         const customGroup = document.getElementById('customRepeatGroup');
         customGroup.style.display = repeatType === 'custom' ? 'block' : 'none';
     }
 
+    // 7. HÀM CHUYỂN ĐỔI GIAO DIỆN (DẠNG DÒNG / DẠNG THẺ DÀI)
     function switchView(viewType) {
         currentView = viewType;
         localStorage.setItem('countdown_view_pref', viewType);
@@ -456,11 +464,13 @@
         }
     }
 
+    // 8. HÀM LƯU DỮ LIỆU ĐỆM XUỐNG LOCALSTORAGE MÁY
     function saveEvents() {
         localStorage.setItem('countdown_events_v3', JSON.stringify(events));
         renderEvents();
     }
 
+    // 9. HÀM THÊM MỚI SỰ KIỆN (VỪA LƯU TRÊN MÁY VỪA BẮN LÊN CLOUD GSHEET)
     function addEvent() {
         const title = document.getElementById('eventTitle').value.trim();
         const date = document.getElementById('eventDate').value;
@@ -511,6 +521,7 @@
         toggleRepeatUnit();
     }
 
+    // 10. HÀM XÓA SỰ KIỆN (VỪA XÓA MÁY VỪA RA LỆNH CHO GSHEET XÓA THEO ID)
     function deleteEvent(id) {
         if(confirm('Bạn có chắc muốn xóa mục này?')) {
             const savedScriptUrl = localStorage.getItem('google_script_url_pref') || '';
@@ -531,6 +542,7 @@
         }
     }
 
+    // 11. THUẬT TOÁN TỰ ĐỘNG NHẢY CHU KỲ TƯƠNG LAI AN TOÀN TRÁNH NaN
     function getNextOccurrence(startDateStr, repeatValue, repeatUnit, today) {
         let safeDateStr = String(startDateStr).replace(/\//g, '-');
         if (safeDateStr.length === 10) {
@@ -562,6 +574,7 @@
         return targetDate;
     }
 
+    // 12. HÀM VẼ GIAO DIỆN HIỂN THỊ DANH SÁCH SỰ KIỆN
     function renderEvents() {
         const listElement = document.getElementById('eventsList');
         listElement.innerHTML = '';
@@ -622,9 +635,11 @@
         switchView(currentView);
     }
 
-    // KHỞI CHẠY ỨNG DỤNG LẦN ĐẦU
+    // ==========================================
+    // VI. LỆNH KÍCH HOẠT KHỞI CHẠY ỨNG DỤNG LẦN ĐẦU
+    // ==========================================
     renderEvents();
-    // syncFromCloud(); // Đã tắt tự động để tránh lỗi Failed to fetch trên một số môi trường kén bảo mật
+    // syncFromCloud(); // Tắt kích hoạt tự động để bảo vệ an toàn trên môi trường GitHub Pages
 </script>
 
 </body>
