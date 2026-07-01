@@ -498,4 +498,118 @@
         }
     }
 
-    // THUẬT TOÁN ĐÃ ĐƯỢC NÂNG CẤP ĐỂ ĐỌC CHUỖI NGÀY MỘT CÁCH CH
+    // THUẬT TOÁN ĐÃ ĐƯỢC NÂNG CẤP ĐỂ ĐỌC CHUỖI NGÀY MỘT CÁCH CHÍNH XÁC NHẤT
+    function getNextOccurrence(startDateStr, repeatValue, repeatUnit, today) {
+        if (!startDateStr) return new Date();
+        
+        let safeDateStr = String(startDateStr).trim();
+        let targetDate;
+
+        // Xử lý nếu chuỗi ngày từ Google Sheet bị gửi dạng DD/MM/YYYY
+        if (safeDateStr.includes('/')) {
+            let parts = safeDateStr.split('/');
+            if (parts.length === 3) {
+                // Chuyển về dạng YYYY, MM (0-11), DD để khởi tạo thủ công tránh lỗi múi giờ
+                targetDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            }
+        } 
+        // Xử lý nếu chuỗi ngày có dạng YYYY-MM-DD
+        else if (safeDateStr.includes('-')) {
+            let cleanDate = safeDateStr.split('T')[0].split(' ')[0]; // Bỏ bớt phần giờ thừa
+            let parts = cleanDate.split('-');
+            if (parts.length === 3) {
+                targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            }
+        }
+
+        // Phương án bọc lót cuối cùng nếu các bộ tách chuỗi trên không chạy được
+        if (!targetDate || isNaN(targetDate.getTime())) {
+            targetDate = new Date(safeDateStr);
+        }
+
+        // Nếu tất cả phương án đều thất bại, bắt buộc dùng ngày hiện tại để tránh sập app
+        if (isNaN(targetDate.getTime())) {
+            targetDate = new Date();
+        }
+        
+        targetDate.setHours(0,0,0,0);
+
+        if (repeatUnit === 'none' || targetDate >= today) {
+            return targetDate;
+        }
+
+        // Tính chu kỳ tương lai nếu sự kiện đã quá hạn
+        while (targetDate < today) {
+            if (repeatUnit === 'days') targetDate.setDate(targetDate.getDate() + repeatValue);
+            else if (repeatUnit === 'weeks') targetDate.setDate(targetDate.getDate() + (repeatValue * 7));
+            else if (repeatUnit === 'months') targetDate.setMonth(targetDate.getMonth() + repeatValue);
+            else if (repeatUnit === 'years') targetDate.setFullYear(targetDate.getFullYear() + repeatValue);
+        }
+        return targetDate;
+    }
+
+    function renderEvents() {
+        const listElement = document.getElementById('eventsList');
+        listElement.innerHTML = '';
+
+        if (events.length === 0) {
+            listElement.innerHTML = '<p style="text-align:center; color:#64748b; grid-column: 1/-1; padding: 30px;">Chưa có sự kiện nào.</p>';
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const processedEvents = events.map(event => {
+            const computedTargetDate = getNextOccurrence(event.date, event.repeatValue, event.repeatUnit, today);
+            const timeDiff = computedTargetDate.getTime() - today.getTime();
+            const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+            return { ...event, computedTargetDate: computedTargetDate, daysLeft: daysLeft };
+        });
+
+        processedEvents.sort((a, b) => a.daysLeft - b.daysLeft);
+
+        processedEvents.forEach(event => {
+            let statusClass = 'safe';
+            let statusText = `Còn ${event.daysLeft} ngày`;
+
+            if (event.daysLeft === 0) { statusClass = 'urgent'; statusText = `HÔM NAY! 🎉`; }
+            else if (event.daysLeft < 0) { statusClass = 'expired'; statusText = `Đã qua ${Math.abs(event.daysLeft)} ngày`; }
+            else if (event.daysLeft <= 7) { statusClass = 'urgent'; }
+            else if (event.daysLeft <= 30) { statusClass = 'warning'; }
+
+            const formattedDate = event.computedTargetDate.toLocaleDateString('vi-VN');
+            const categoryText = event.category === 'giayto' ? '📄 Giấy tờ' : '⭐ Sự kiện';
+            
+            let repeatText = '';
+            if (event.repeatUnit !== 'none') {
+                const unitMap = { days: 'Ngày', weeks: 'Tuần', months: 'Tháng', years: 'Năm' };
+                repeatText = `<span class="repeat-badge">🔁 Mỗi ${event.repeatValue} ${unitMap[event.repeatUnit]}</span>`;
+            }
+
+            const card = document.createElement('div');
+            card.className = `event-card ${statusClass}`;
+            card.innerHTML = `
+                <div class="event-info">
+                    <h3>${event.title}</h3>
+                    <p style="font-weight: 600; color: #475569; margin-bottom: 4px;">${categoryText}</p>
+                    <p>Hạn tới: <b>${formattedDate}</b></p>
+                    ${repeatText}
+                </div>
+                <div class="countdown-display">
+                    <span class="days-left">${statusText}</span>
+                    <button class="delete-btn" onclick="deleteEvent(${event.id})">🗑️ Xóa</button>
+                </div>
+            `;
+            listElement.appendChild(card);
+        });
+
+        switchView(currentView);
+    }
+
+    renderEvents();
+</script>
+
+</body>
+</html>
