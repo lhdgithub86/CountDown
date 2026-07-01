@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trợ Lý Đếm Ngược & Nhắc Nhở Email</title>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #4f46e5, #3b82f6);
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --success-color: #10b981;
+            --bg-gradient: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px 20px;
+            color: var(--text-main);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e3a8a;
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+        }
+
+        /* Thanh trạng thái đồng bộ */
+        .sync-status {
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 6px;
+            border-radius: 20px;
+            display: none;
+        }
+        .sync-loading { background: #fef3c7; color: #d97706; }
+        .sync-success { background: #d1fae5; color: #065f46; }
+        .sync-failed { background: #fee2e2; color: #b91c1c; }
+
+        /* Khung cấu hình link Google Script */
+        .config-container {
+            background: #fffbeb;
+            border: 1px solid #fef3c7;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+        .config-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .config-group input {
+            flex: 1;
+            background: #ffffff;
+        }
+        .btn-save-config {
+            width: auto;
+            background: #d97706;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Bảng Ghi Chú */
+        .note-box {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-left: 5px solid #3b82f6;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            font-size: 14px;
+            color: #1e40af;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            line-height: 1.6;
+        }
+        .note-box span {
+            background: #ffffff;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 0 3px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: inline-block;
+        }
+
+        /* Form nhập liệu */
+        .form-container {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr 1fr 1fr 1.5fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .repeat-options {
+            display: flex;
+            gap: 5px;
+        }
+        .repeat-options input {
+            width: 60px;
+            text-align: center;
+        }
+
+        @media (max-width: 950px) {
+            .form-group {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: block;
+            color: #475569;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        button.btn-add {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Thanh chuyển giao diện */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .toolbar-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .view-btn, .sync-manual-btn {
+            width: auto;
+            padding: 8px 16px;
+            background-color: #e2e8f0;
+            color: #475569;
+            border: none;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .view-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        /* DANH SÁCH SỰ KIỆN */
+        .events-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .events-list.grid-view {
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        }
+
+        .event-card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 6px solid #3b82f6;
+        }
+
+        .events-list.grid-view .event-card {
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: space-between;
+            min-height: 150px;
+            border-left: none;
+            border-top: 6px solid #3b82f6;
+        }
+
+        .event-card.urgent { border-left-color: var(--danger-color); }
+        .event-card.warning { border-left-color: var(--warning-color); }
+        .event-card.safe { border-left-color: var(--success-color); }
+        .event-card.expired { border-left-color: #94a3b8; opacity: 0.7; }
+
+        .events-list.grid-view .event-card.urgent { border-top-color: var(--danger-color); }
+        .events-list.grid-view .event-card.warning { border-top-color: var(--warning-color); }
+        .events-list.grid-view .event-card.safe { border-top-color: var(--success-color); }
+        .events-list.grid-view .event-card.expired { border-top-color: #94a3b8; }
+
+        .event-info h3 { margin: 0 0 8px 0; color: #0f172a; font-size: 1.1rem; }
+        .event-info p { margin: 0; font-size: 13px; color: #64748b; }
+
+        .repeat-badge {
+            display: inline-block;
+            background-color: #f0fdf4;
+            color: #166534;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 8px;
+            border: 1px solid #bbf7d0;
+        }
+
+        .countdown-display { text-align: right; display: flex; align-items: center; gap: 20px; }
+        .events-list.grid-view .countdown-display { width: 100%; justify-content: space-between; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
+
+        .days-left { font-size: 18px; font-weight: 700; }
+        .urgent .days-left { color: var(--danger-color); }
+        .warning .days-left { color: var(--warning-color); }
+        .safe .days-left { color: var(--success-color); }
+
+        .delete-btn {
+            background-color: #fff1f2; color: #f43f5e; border: 1px solid #ffe4e6;
+            font-size: 16px; cursor: pointer; width: auto; padding: 6px 12px; border-radius: 6px;
+        }
+        .delete-btn:hover { background-color: var(--danger-color); color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📅 Trợ Lý Đếm Ngược & Nhắc Nhở Email</h1>
+
+    <div id="syncStatusBox" class="sync-status"></div>
+
+    <div class="config-container">
+        <label for="scriptUrlInput">🔗 Liên kết Google Apps Script (Email Cloud)</label>
+        <div class="config-group">
+            <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/library/d/1FnPaQCM9z6JSNCYr2DyaO_VR0GZZm9NMPXjJ1U_BRzJylZSf8lplbzMQ/3">
+            <button class="btn-save-config" onclick="saveConfigUrl()">Lưu Cấu Hình</button>
+        </div>
+    </div>
+
+    <div class="note-box">
+        📌 <b>Lịch tự động gửi Email nhắc nhở về Gmail của bạn:</b> 
+        Hệ thống đám mây sẽ tự quét và gửi thông báo vào các mốc: 
+        <span>3 Tháng</span> → <span>1 Tháng</span> → <span>15 Ngày</span> → <span>10 Ngày</span> → <span>5 Ngày</span> → <span>1 Ngày</span> → <span style="background: #d1fae5; color: #065f46;">Hôm Nay 🎉</span>
+    </div>
+
+    <div class="form-container">
+        <div class="form-group">
+            <div>
+                <label for="eventTitle">Tên giấy tờ / Sự kiện</label>
+                <input type="text" id="eventTitle" placeholder="Ví dụ: Đóng tiền nước, Gia hạn thẻ..." required>
+            </div>
+            <div>
+                <label for="eventDate">Ngày bắt đầu / Lần tới</label>
+                <input type="date" id="eventDate" required>
+            </div>
+            <div>
+                <label for="eventCategory">Phân loại</label>
+                <select id="eventCategory">
+                    <option value="giayto">📄 Giấy tờ</option>
+                    <option value="quantrong">⭐ Ngày quan trọng</option>
+                </select>
+            </div>
+            <div>
+                <label for="repeatType">Chu kỳ lặp</label>
+                <select id="repeatType" onchange="toggleRepeatUnit()">
+                    <option value="none">Không lặp</option>
+                    <option value="custom">Định kỳ...</option>
+                </select>
+            </div>
+            <div id="customRepeatGroup" style="display: none;">
+                <label>Mỗi khoảng (Số + Mốc)</label>
+                <div class="repeat-options">
+                    <input type="number" id="repeatValue" min="1" value="1">
+                    <select id="repeatUnit">
+                        <option value="days">Ngày</option>
+                        <option value="weeks">Tuần</option>
+                        <option value="months" selected>Tháng</option>
+                        <option value="years">Năm</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <button class="btn-add" onclick="addEvent()">Thêm</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="sync-manual-btn" onclick="syncFromCloud()" style="background-color: #f1f5f9;">🔄 Đồng bộ thủ công</button>
+        <div class="toolbar-buttons">
+            <button id="listViewBtn" class="view-btn active" onclick="switchView('list')">Browse Dạng Dòng</button>
+            <button id="gridViewBtn" class="view-btn" onclick="switchView('grid')">🎴 Dạng Thẻ</button>
+        </div>
+    </div>
+
+    <div class="events-list" id="eventsList"></div>
+</div>
+
+<script>
+    let events = JSON.parse(localStorage.getItem('countdown_events_v3')) || [];
+    let currentView = localStorage.getItem('countdown_view_pref') || 'list';
+
+    document.getElementById('scriptUrlInput').value = localStorage.getItem('google_script_url_pref') || '';
+
+    function showSyncStatus(text, className, duration = 3000) {
+        const box = document.getElementById('syncStatusBox');
+        box.innerText = text;
+        box.className = `sync-status ${className}`;
+        box.style.display = 'block';
+        if(duration > 0) {
+            setTimeout(() => { box.style.display = 'none'; }, duration);
+        }
+    }
+
+    // ========================================================
+    // TÍNH NĂNG CHỦ ĐẠO: TỰ ĐỘNG LẤY DỮ LIỆU TỪ GSHEET VỀ KHI BẬT APP
+    // ========================================================
+    function syncFromCloud() {
+        const savedScriptUrl = localStorage.getItem('google_script_url_pref') || '';
+        if (!savedScriptUrl) {
+            showSyncStatus("⚠️ Chưa cấu hình hoặc thiếu liên kết Google Apps Script.", "sync-failed");
+            return;
+        }
+
+        showSyncStatus("🔄 Đang đồng bộ và kiểm tra dữ liệu với đám mây...", "sync-loading", 0);
+
+        fetch(savedScriptUrl, {
+            method: "GET",
+            redirect: "follow"
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Không thể kết nối tới Google Server');
+            return response.text(); // Đọc dạng chữ thô trước để tránh lỗi crash JSON
+        })
+        .then(textData => {
+            try {
+                const cloudEvents = JSON.parse(textData);
+                if (Array.isArray(cloudEvents)) {
+                    events = cloudEvents.map(item => {
+                        let formattedDate = item.date;
+                        if(item.date && item.date.includes('T')) {
+                            formattedDate = item.date.split('T')[0];
+                        }
+                        return { ...item, date: formattedDate };
+                    });
+                    
+                    localStorage.setItem('countdown_events_v3', JSON.stringify(events));
+                    renderEvents();
+                    showSyncStatus("✅ Đã đồng bộ dữ liệu mới nhất thành công!", "sync-success");
+                }
+            } catch(jsonErr) {
+                // Nếu Google trả về trang báo lỗi HTML (do phân quyền sai), đoạn này sẽ bắt được luôn
+                console.error("Dữ liệu đám mây trả về lỗi cấu trúc:", textData);
+                throw new Error("Lỗi phân quyền hoặc link sai cấu trúc.");
+            }
+        })
+        .catch(err => {
+            console.error("Lỗi đồng bộ chi tiết:", err);
+            showSyncStatus("❌ Lỗi đồng bộ đám mây: " + err.message, "sync-failed");
+        });
+    }
+
+    function saveConfigUrl() {
+        const url = document.getElementById('scriptUrlInput').value.trim();
+        localStorage.setItem('google_script_url_pref', url);
+        alert('Đã lưu cấu hình kết nối đám mây thành công!');
+        syncFromCloud(); // Tự động đồng bộ ngay sau khi lưu cấu hình
+    }
+
+    function toggleRepeatUnit() {
+        const repeatType = document.getElementById('repeatType').value;
+        const customGroup = document.getElementById('customRepeatGroup');
+        customGroup.style.display = repeatType === 'custom' ? 'block' : 'none';
+    }
+
+    function switchView(viewType) {
+        currentView = viewType;
+        localStorage.setItem('countdown_view_pref', viewType);
+        
+        const listElement = document.getElementById('eventsList');
+        const listBtn = document.getElementById('listViewBtn');
+        const gridBtn = document.getElementById('gridViewBtn');
+
+        if (viewType === 'grid') {
+            listElement.classList.add('grid-view');
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        } else {
+            listElement.classList.remove('grid-view');
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+        }
+    }
+
+    function saveEvents() {
+        localStorage.setItem('countdown_events_v3', JSON.stringify(events));
+        renderEvents();
+    }
+
+    function addEvent() {
+        const title = document.getElementById('eventTitle').value.trim();
+        const date = document.getElementById('eventDate').value;
+        const category = document.getElementById('eventCategory').value;
+        const repeatType = document.getElementById('repeatType').value;
+        const savedScriptUrl = localStorage.getItem('google_script_url_pref') || '';
+        
+        let repeatValue = 0;
+        let repeatUnit = 'none';
+
+        if (repeatType === 'custom') {
+            repeatValue = parseInt(document.getElementById('repeatValue').value) || 1;
+            repeatUnit = document.getElementById('repeatUnit').value;
+            if(repeatValue < 1) repeatValue = 1;
+        }
+
+        if (!title || !date) {
+            alert('Vui lòng điền đầy đủ thông tin!');
+            return;
+        }
+
+        const newEvent = {
+            id: Date.now(),
+            title: title,
+            date: date,
+            category: category,
+            repeatValue: repeatValue,
+            repeatUnit: repeatUnit
+        };
+
+        events.push(newEvent);
+        saveEvents();
+
+        if(savedScriptUrl !== "") {
+           // Đoạn fetch dùng để gửi dữ liệu THÊM hoặc XÓA lên Google Sheet bắt buộc phải có mode: "no-cors"
+fetch(savedScriptUrl, {
+    method: "POST",
+    mode: "no-cors", // <--- BẮT BUỘC PHẢI CÓ DÒNG NÀY
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(newEvent) // Hoặc dữ liệu hành động xóa
+})
+            .then(() => console.log("Đã đồng bộ thêm lên Cloud."))
+            .catch(err => console.error("Lỗi thêm:", err));
+        }
+
+        document.getElementById('eventTitle').value = '';
+        document.getElementById('eventDate').value = '';
+        document.getElementById('repeatType').value = 'none';
+        toggleRepeatUnit();
+    }
+
+    function deleteEvent(id) {
+        if(confirm('Bạn có chắc muốn xóa mục này?')) {
+            const savedScriptUrl = localStorage.getItem('google_script_url_pref') || '';
+            
+            if(savedScriptUrl !== "") {
+                fetch(savedScriptUrl, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "delete", id: id })
+                })
+                .then(() => console.log("Đã gửi lệnh xóa lên Cloud."))
+                .catch(err => console.error("Lỗi xóa Cloud:", err));
+            }
+
+            events = events.filter(event => event.id !== id);
+            saveEvents();
+        }
+    }
+
+    function getNextOccurrence(startDateStr, repeatValue, repeatUnit, today) {
+        let targetDate = new Date(startDateStr);
+        targetDate.setHours(0,0,0,0);
+
+        if (repeatUnit === 'none' || targetDate >= today) {
+            return targetDate;
+        }
+
+        while (targetDate < today) {
+            if (repeatUnit === 'days') targetDate.setDate(targetDate.getDate() + repeatValue);
+            else if (repeatUnit === 'weeks') targetDate.setDate(targetDate.getDate() + (repeatValue * 7));
+            else if (repeatUnit === 'months') targetDate.setMonth(targetDate.getMonth() + repeatValue);
+            else if (repeatUnit === 'years') targetDate.setFullYear(targetDate.getFullYear() + repeatValue);
+        }
+        return targetDate;
+    }
+
+    function renderEvents() {
+        const listElement = document.getElementById('eventsList');
+        listElement.innerHTML = '';
+
+        if (events.length === 0) {
+            listElement.innerHTML = '<p style="text-align:center; color:#64748b; grid-column: 1/-1; padding: 30px;">Chưa có sự kiện nào.</p>';
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const processedEvents = events.map(event => {
+            const computedTargetDate = getNextOccurrence(event.date, event.repeatValue, event.repeatUnit, today);
+            const timeDiff = computedTargetDate.getTime() - today.getTime();
+            const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+            return { ...event, computedTargetDate: computedTargetDate, daysLeft: daysLeft };
+        });
+
+        processedEvents.sort((a, b) => a.daysLeft - b.daysLeft);
+
+        processedEvents.forEach(event => {
+            let statusClass = 'safe';
+            let statusText = `Còn ${event.daysLeft} ngày`;
+
+            if (event.daysLeft === 0) { statusClass = 'urgent'; statusText = `HÔM NAY! 🎉`; }
+            else if (event.daysLeft < 0) { statusClass = 'expired'; statusText = `Đã qua ${Math.abs(event.daysLeft)} ngày`; }
+            else if (event.daysLeft <= 7) { statusClass = 'urgent'; }
+            else if (event.daysLeft <= 30) { statusClass = 'warning'; }
+
+            const formattedDate = event.computedTargetDate.toLocaleDateString('vi-VN');
+            const categoryText = event.category === 'giayto' ? '📄 Giấy tờ' : '⭐ Sự kiện';
+            
+            let repeatText = '';
+            if (event.repeatUnit !== 'none') {
+                const unitMap = { days: 'Ngày', weeks: 'Tuần', months: 'Tháng', years: 'Năm' };
+                repeatText = `<span class="repeat-badge">🔁 Mỗi ${event.repeatValue} ${unitMap[event.repeatUnit]}</span>`;
+            }
+
+            const card = document.createElement('div');
+            card.className = `event-card ${statusClass}`;
+            card.innerHTML = `
+                <div class="event-info">
+                    <h3>${event.title}</h3>
+                    <p style="font-weight: 600; color: #475569; margin-bottom: 4px;">${categoryText}</p>
+                    <p>Hạn tới: <b>${formattedDate}</b></p>
+                    ${repeatText}
+                </div>
+                <div class="countdown-display">
+                    <span class="days-left">${statusText}</span>
+                    <button class="delete-btn" onclick="deleteEvent(${event.id})">🗑️ Xóa</button>
+                </div>
+            `;
+            listElement.appendChild(card);
+        });
+
+        switchView(currentView);
+    }
+
+    // KHỞI CHẠY ỨNG DỤNG LẦN ĐẦU
+    renderEvents();      // Hiển thị dữ liệu offline trước để tránh màn hình trắng
+    syncFromCloud();     // Kích hoạt tính năng tự động tải dữ liệu mới nhất từ GSheet về
+</script>
+
+</body>
+</html>
