@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trợ Lý Đếm Ngược & Nhắc Nhở Email</title>
+    <title>Trợ Lý Đếm Ngược Siêu Tốc (Supabase Cloud)</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #4f46e5, #3b82f6);
@@ -17,50 +20,75 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-gradient); min-height: 100vh; margin: 0; padding: 30px 20px; color: var(--text-main); }
         .container { max-width: 1000px; margin: 0 auto; }
         h1 { text-align: center; color: #1e3a8a; font-size: 2.2rem; margin-bottom: 25px; }
+        
         .sync-status { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 15px; padding: 6px; border-radius: 20px; display: none; }
         .sync-loading { background: #fef3c7; color: #d97706; }
         .sync-success { background: #d1fae5; color: #065f46; }
         .sync-failed { background: #fee2e2; color: #b91c1c; }
-        .config-container { background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); text-align: left; }
-        .config-group { display: flex; gap: 10px; align-items: center; }
-        .config-group input { flex: 1; background: #ffffff; }
-        .btn-save-config { width: auto; background: #d97706; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .note-box { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border-left: 5px solid #3b82f6; padding: 15px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; color: #1e40af; box-shadow: 0 4px 15px rgba(0,0,0,0.03); line-height: 1.6; text-align: left; }
-        .note-box span { background: #ffffff; padding: 3px 8px; border-radius: 6px; font-weight: bold; margin: 0 3px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: inline-block; }
+
+        /* Khung nhập URL & KEY của Supabase */
+        .config-container {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+        @media (max-width: 768px) { .config-grid { grid-template-columns: 1fr; } }
+        
+        .btn-save-config { background: #0f172a; color: white; border: none; font-weight: bold; cursor: pointer; height: 45px;}
+
         .form-container { background-color: var(--card-bg); padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 30px; }
         .form-group { display: grid; grid-template-columns: 2fr 1.2fr 1fr 1fr 1.5fr auto; gap: 15px; align-items: end; }
         .repeat-options { display: flex; gap: 5px; }
         .repeat-options input { width: 60px; text-align: center; }
         @media (max-width: 950px) { .form-group { grid-template-columns: 1fr; } }
+        
         label { font-weight: 600; font-size: 14px; margin-bottom: 8px; display: block; color: #475569; }
         input, select, button { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 14px; transition: all 0.3s ease; }
+        
         button.btn-add { background: var(--primary-gradient); color: white; border: none; cursor: pointer; font-weight: bold; }
         button.btn-update-mode { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        
         .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .toolbar-buttons { display: flex; gap: 10px; }
         .view-btn, .sync-manual-btn { width: auto; padding: 8px 16px; background-color: #e2e8f0; color: #475569; border: none; font-weight: 600; border-radius: 6px; cursor: pointer; }
         .view-btn.active { background: var(--primary-gradient); color: white; }
+        
         .events-list { display: grid; gap: 15px; }
         .events-list.grid-view { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
         .event-card { background-color: var(--card-bg); padding: 20px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #3b82f6; }
         .events-list.grid-view .event-card { flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 160px; border-left: none; border-top: 6px solid #3b82f6; }
+        
         .event-card.urgent { border-left-color: var(--danger-color); }
         .event-card.warning { border-left-color: var(--warning-color); }
         .event-card.safe { border-left-color: var(--success-color); }
         .event-card.expired { border-left-color: #94a3b8; opacity: 0.7; }
+        
         .events-list.grid-view .event-card.urgent { border-top-color: var(--danger-color); }
         .events-list.grid-view .event-card.warning { border-top-color: var(--warning-color); }
         .events-list.grid-view .event-card.safe { border-top-color: var(--success-color); }
         .events-list.grid-view .event-card.expired { border-top-color: #94a3b8; }
+        
         .event-info h3 { margin: 0 0 8px 0; color: #0f172a; font-size: 1.1rem; }
         .event-info p { margin: 0; font-size: 13px; color: #64748b; }
         .repeat-badge { display: inline-block; background-color: #f0fdf4; color: #166534; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-top: 8px; border: 1px solid #bbf7d0; }
+        
         .countdown-display { text-align: right; display: flex; align-items: center; gap: 15px; }
         .events-list.grid-view .countdown-display { width: 100%; justify-content: space-between; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
         .days-left { font-size: 18px; font-weight: 700; }
+        
         .urgent .days-left { color: var(--danger-color); }
         .warning .days-left { color: var(--warning-color); }
         .safe .days-left { color: var(--success-color); }
+        
         .action-btns { display: flex; gap: 6px; }
         .edit-btn { background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a; font-size: 14px; cursor: pointer; width: auto; padding: 6px 10px; border-radius: 6px; font-weight: 600; }
         .edit-btn:hover { background-color: #f59e0b; color: white; }
@@ -71,21 +99,22 @@
 <body>
 
 <div class="container">
-    <h1>📅 Trợ Lý Đếm Ngược & Nhắc Nhở Email</h1>
+    <h1>📅 Trợ Lý Đếm Ngược Siêu Tốc Cloud</h1>
     <div id="syncStatusBox" class="sync-status"></div>
 
     <div class="config-container">
-        <label for="scriptUrlInput">🔗 Liên kết Google Apps Script (Email Cloud)</label>
-        <div class="config-group">
-            <input type="text" id="scriptUrlInput" placeholder="Dán link kết thúc bằng /exec vào đây...">
-            <button class="btn-save-config" onclick="saveConfigUrl()">Lưu Cấu Hình</button>
+        <label style="font-weight: bold; color: #0f172a; margin-bottom: 10px;">🔌 Kết nối hệ thống dữ liệu đám mây Supabase</label>
+        <div class="config-grid">
+            <div>
+                <label for="sbUrl">Supabase URL</label>
+                <input type="text" id="sbUrl" placeholder="https://xxx.supabase.co">
+            </div>
+            <div>
+                <label for="sbKey">Supabase Anon Key</label>
+                <input type="text" id="sbKey" placeholder="Chuỗi Anon Key dài...">
+            </div>
+            <button class="btn-save-config" onclick="saveSupabaseConfig()">Kết Nối Đám Mây</button>
         </div>
-    </div>
-
-    <div class="note-box">
-        📌 <b>Lịch tự động gửi Email nhắc nhở về Gmail của bạn:</b> 
-        Hệ thống đám mây sẽ tự quét và gửi thông báo vào các mốc: 
-        <span>3 Tháng</span> → <span>1 Tháng</span> → <span>15 Ngày</span> → <span>10 Ngày</span> → <span>5 Ngày</span> → <span>1 Ngày</span> → <span style="background: #d1fae5; color: #065f46;">Hôm Nay 🎉</span>
     </div>
 
     <div class="form-container">
@@ -131,7 +160,7 @@
     </div>
 
     <div class="toolbar">
-        <button class="sync-manual-btn" onclick="syncFromCloud()" style="background-color: #f1f5f9;">🔄 Đồng bộ thủ công</button>
+        <button class="sync-manual-btn" onclick="fetchFromCloud()">🔄 Đồng bộ dữ liệu</button>
         <div class="toolbar-buttons">
             <button id="listViewBtn" class="view-btn active" onclick="switchView('list')">📛 Dạng Dòng</button>
             <button id="gridViewBtn" class="view-btn" onclick="switchView('grid')">🎴 Dạng Thẻ</button>
@@ -142,154 +171,120 @@
 </div>
 
 <script>
-    let events = JSON.parse(localStorage.getItem('countdown_events_v3')) || [];
+    let events = [];
     let currentView = localStorage.getItem('countdown_view_pref') || 'list';
     let editModeId = null;
+    let supabaseClient = null;
 
-    document.getElementById('scriptUrlInput').value = localStorage.getItem('google_script_url_pref') || '';
+    // Tự động load cấu hình khi mở trang
+    window.onload = function() {
+        const savedUrl = localStorage.getItem('sb_url');
+        const savedKey = localStorage.getItem('sb_key');
+        if(savedUrl && savedKey) {
+            document.getElementById('sbUrl').value = savedUrl;
+            document.getElementById('sbKey').value = savedKey;
+            initSupabase(savedUrl, savedKey);
+            fetchFromCloud();
+        } else {
+            // Nếu không có cloud, lấy tạm local cũ dùng trước
+            events = JSON.parse(localStorage.getItem('countdown_events_v3')) || [];
+            renderEvents();
+        }
+    };
+
+    function initSupabase(url, key) {
+        if(url && key) {
+            supabaseClient = supabase.createClient(url, key);
+        }
+    }
+
+    function saveSupabaseConfig() {
+        const url = document.getElementById('sbUrl').value.trim();
+        const key = document.getElementById('sbKey').value.trim();
+        if(!url || !key) { alert('Vui lòng nhập đủ thông tin!'); return; }
+        
+        localStorage.setItem('sb_url', url);
+        localStorage.setItem('sb_key', key);
+        initSupabase(url, key);
+        alert('Kết nối Supabase Cloud thành công!');
+        fetchFromCloud();
+    }
 
     function showSyncStatus(text, className, duration = 3000) {
         const box = document.getElementById('syncStatusBox');
         box.innerText = text;
         box.className = `sync-status ${className}`;
         box.style.display = 'block';
-        if(duration > 0) {
-            setTimeout(() => { box.style.display = 'none'; }, duration);
-        }
+        if(duration > 0) setTimeout(() => { box.style.display = 'none'; }, duration);
     }
 
-    function syncFromCloud() {
-        const savedScriptUrl = localStorage.getItem('google_script_url_pref') || '';
-        if (!savedScriptUrl) {
-            showSyncStatus("⚠️ Chưa cấu hình hoặc thiếu liên kết Google Apps Script.", "sync-failed");
-            return;
+    // ĐỌC DỮ LIỆU TỪ CLOUD (Tốc độ cao)
+    async function fetchFromCloud() {
+        if(!supabaseClient) return;
+        showSyncStatus("🔄 Đang tải dữ liệu từ Supabase Cloud...", "sync-loading", 0);
+        
+        try {
+            const { data, error } = await supabaseClient.from('events').select('*');
+            if (error) throw error;
+            
+            events = data || [];
+            localStorage.setItem('countdown_events_v3', JSON.stringify(events));
+            renderEvents();
+            showSyncStatus("✅ Đồng bộ đám mây hoàn tất!", "sync-success");
+        } catch (err) {
+            showSyncStatus("❌ Lỗi đồng bộ: " + err.message, "sync-failed");
         }
-
-        showSyncStatus("🔄 Đang đồng bộ và kiểm tra dữ liệu với đám mây...", "sync-loading", 0);
-
-        fetch(savedScriptUrl, { method: "GET", redirect: "follow" })
-        .then(response => {
-            if (!response.ok) throw new Error('Không thể kết nối tới Google Server');
-            return response.text();
-        })
-        .then(textData => {
-            try {
-                const cloudEvents = JSON.parse(textData);
-                if (Array.isArray(cloudEvents)) {
-                    events = cloudEvents.map(item => {
-                        let rawTitle = item.title || item.Title || item.TITLE || "Sự kiện không tên";
-                        let rawDate = item.date || item.Date || item.DATE || "";
-                        let rawCategory = item.category || item.Category || item.CATEGORY || "giayto";
-                        let rawId = item.id || item.Id || item.ID || Date.now();
-                        let rawRepeatValue = item.repeatValue || item.RepeatValue || 0;
-                        let rawRepeatUnit = item.repeatUnit || item.RepeatUnit || "none";
-
-                        return {
-                            id: Number(rawId),
-                            title: rawTitle,
-                            date: rawDate,
-                            category: rawCategory,
-                            repeatValue: parseInt(rawRepeatValue) || 0,
-                            repeatUnit: rawRepeatUnit
-                        };
-                    });
-                    
-                    localStorage.setItem('countdown_events_v3', JSON.stringify(events));
-                    renderEvents();
-                    showSyncStatus("✅ Đã đồng bộ dữ liệu mới nhất thành công!", "sync-success");
-                }
-            } catch(jsonErr) {
-                showSyncStatus("❌ Lỗi phân giải JSON từ Cloud.", "sync-failed");
-            }
-        })
-        .catch(err => {
-            showSyncStatus("❌ Lỗi đồng bộ đám mây: " + err.message, "sync-failed");
-        });
-    }
-
-    function saveConfigUrl() {
-        const url = document.getElementById('scriptUrlInput').value.trim();
-        localStorage.setItem('google_script_url_pref', url);
-        alert('Đã lưu cấu hình kết nối đám mây thành công!');
-        syncFromCloud();
     }
 
     function toggleRepeatUnit() {
         const repeatType = document.getElementById('repeatType').value;
-        const customGroup = document.getElementById('customRepeatGroup');
-        customGroup.style.display = repeatType === 'custom' ? 'block' : 'none';
+        document.getElementById('customRepeatGroup').style.display = repeatType === 'custom' ? 'block' : 'none';
     }
 
     function switchView(viewType) {
         currentView = viewType;
         localStorage.setItem('countdown_view_pref', viewType);
         const listElement = document.getElementById('eventsList');
-        const listBtn = document.getElementById('listViewBtn');
-        const gridBtn = document.getElementById('gridViewBtn');
-
         if (viewType === 'grid') {
             listElement.classList.add('grid-view');
-            gridBtn.classList.add('active');
-            listBtn.classList.remove('active');
+            document.getElementById('gridViewBtn').classList.add('active');
+            document.getElementById('listViewBtn').classList.remove('active');
         } else {
             listElement.classList.remove('grid-view');
-            listBtn.classList.add('active');
-            gridBtn.classList.remove('active');
+            document.getElementById('listViewBtn').classList.add('active');
+            document.getElementById('gridViewBtn').classList.remove('active');
         }
-    }
-
-    function saveEvents() {
-        localStorage.setItem('countdown_events_v3', JSON.stringify(events));
-        renderEvents();
     }
 
     function handleSubmitEvent() {
-        if (editModeId !== null) {
-            updateEvent();
-        } else {
-            addEvent();
-        }
+        if (editModeId !== null) updateEvent(); else addEvent();
     }
 
-    function addEvent() {
+    // THÊM SỰ KIỆN MỚI
+    async function addEvent() {
         const title = document.getElementById('eventTitle').value.trim();
         const date = document.getElementById('eventDate').value;
         const category = document.getElementById('eventCategory').value;
         const repeatType = document.getElementById('repeatType').value;
-        const savedScriptUrl = localStorage.getItem('google_script_url_pref') || '';
         
-        let repeatValue = 0;
-        let repeatUnit = 'none';
-
+        let repeatValue = 0, repeatUnit = 'none';
         if (repeatType === 'custom') {
             repeatValue = parseInt(document.getElementById('repeatValue').value) || 1;
             repeatUnit = document.getElementById('repeatUnit').value;
         }
 
-        if (!title || !date) {
-            alert('Vui lòng điền đầy đủ thông tin!');
-            return;
-        }
+        if (!title || !date) { alert('Vui lòng điền đầy đủ thông tin!'); return; }
 
-        const newEvent = {
-            id: Date.now(),
-            title: title,
-            date: date,
-            category: category,
-            repeatValue: repeatValue,
-            repeatUnit: repeatUnit
-        };
+        const newEvent = { id: Date.now(), title, date, category, repeatValue, repeatUnit };
 
+        // Lưu local hiển thị trước cho mượt
         events.push(newEvent);
-        saveEvents();
+        renderEvents();
 
-        if(savedScriptUrl !== "") {
-            fetch(savedScriptUrl, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(newEvent)
-            }).catch(err => console.error(err));
+        // Đẩy lên cloud
+        if(supabaseClient) {
+            const { error } = await supabaseClient.from('events').insert([newEvent]);
+            if(error) alert('Lỗi đẩy dữ liệu lên Cloud: ' + error.message);
         }
         resetForm();
     }
@@ -300,22 +295,7 @@
 
         editModeId = id;
         document.getElementById('eventTitle').value = target.title;
-        
-        // Chuẩn hóa định dạng hiển thị lên ô input date (YYYY-MM-DD)
-        let cleanDate = String(target.date).trim();
-        if(cleanDate.includes('T')) cleanDate = cleanDate.split('T')[0];
-        if(cleanDate.includes(' ')) cleanDate = cleanDate.split(' ')[0];
-        
-        if (cleanDate.includes('/')) {
-            let parts = cleanDate.split('/');
-            if(parts.length === 3) {
-                let d = parts[0].padStart(2, '0');
-                let m = parts[1].padStart(2, '0');
-                let y = parts[2];
-                cleanDate = `${y}-${m}-${d}`;
-            }
-        }
-        document.getElementById('eventDate').value = cleanDate;
+        document.getElementById('eventDate').value = target.date;
         document.getElementById('eventCategory').value = target.category;
 
         if (target.repeatUnit && target.repeatUnit !== 'none') {
@@ -333,50 +313,32 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function updateEvent() {
+    // SỬA SỰ KIỆN (Ghi đè chính xác theo ID)
+    async function updateEvent() {
         const title = document.getElementById('eventTitle').value.trim();
         const date = document.getElementById('eventDate').value;
         const category = document.getElementById('eventCategory').value;
         const repeatType = document.getElementById('repeatType').value;
-        const savedScriptUrl = localStorage.getItem('google_script_url_pref') || '';
 
-        let repeatValue = 0;
-        let repeatUnit = 'none';
-
+        let repeatValue = 0, repeatUnit = 'none';
         if (repeatType === 'custom') {
             repeatValue = parseInt(document.getElementById('repeatValue').value) || 1;
             repeatUnit = document.getElementById('repeatUnit').value;
         }
 
-        if (!title || !date) {
-            alert('Vui lòng điền đầy đủ thông tin!');
-            return;
-        }
-
         events = events.map(e => {
             if(Number(e.id) === Number(editModeId)) {
-                return { ...e, title: title, date: date, category: category, repeatValue: repeatValue, repeatUnit: repeatUnit };
+                return { ...e, title, date, category, repeatValue, repeatUnit };
             }
             return e;
         });
+        renderEvents();
 
-        saveEvents();
-
-        if(savedScriptUrl !== "") {
-            fetch(savedScriptUrl, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    action: "edit", 
-                    id: editModeId, 
-                    title: title, 
-                    date: date, 
-                    category: category, 
-                    repeatValue: repeatValue, 
-                    repeatUnit: repeatUnit 
-                })
-            }).catch(err => console.error(err));
+        if(supabaseClient) {
+            const { error } = await supabaseClient.from('events')
+                .update({ title, date, category, repeatValue, repeatUnit })
+                .eq('id', editModeId);
+            if(error) alert('Lỗi cập nhật Cloud: ' + error.message);
         }
         resetForm();
     }
@@ -387,58 +349,29 @@
         document.getElementById('eventDate').value = '';
         document.getElementById('repeatType').value = 'none';
         toggleRepeatUnit();
-
         const submitBtn = document.getElementById('submitEventBtn');
         submitBtn.innerText = "Thêm";
         submitBtn.classList.remove('btn-update-mode');
     }
 
-    function deleteEvent(id) {
+    // XÓA SỰ KIỆN
+    async function deleteEvent(id) {
         if(confirm('Bạn có chắc muốn xóa mục này?')) {
-            const savedScriptUrl = localStorage.getItem('google_script_url_pref') || '';
-            if(savedScriptUrl !== "") {
-                fetch(savedScriptUrl, {
-                    method: "POST",
-                    mode: "no-cors",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "delete", id: id })
-                }).catch(err => console.error(err));
-            }
             events = events.filter(event => Number(event.id) !== Number(id));
-            saveEvents();
+            renderEvents();
+
+            if(supabaseClient) {
+                const { error } = await supabaseClient.from('events').delete().eq('id', id);
+                if(error) alert('Lỗi xóa trên Cloud: ' + error.message);
+            }
             if (editModeId === id) resetForm();
         }
     }
 
     function getNextOccurrence(startDateStr, repeatValue, repeatUnit, today) {
         if (!startDateStr) return new Date();
-        let safeDateStr = String(startDateStr).trim();
-        let targetDate;
-
-        // Bẻ nhỏ chuỗi phân tách dấu gạch chéo (DD/MM/YYYY)
-        if (safeDateStr.includes('/')) {
-            let parts = safeDateStr.split('/');
-            if (parts.length === 3) {
-                targetDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-            }
-        } 
-        // Bẻ nhỏ chuỗi phân tách dấu gạch ngang (YYYY-MM-DD)
-        else if (safeDateStr.includes('-')) {
-            let cleanDate = safeDateStr.split('T')[0].split(' ')[0];
-            let parts = cleanDate.split('-');
-            if (parts.length === 3) {
-                targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            }
-        }
-
-        if (!targetDate || isNaN(targetDate.getTime())) {
-            targetDate = new Date(safeDateStr);
-        }
-        
-        // Nếu parse lỗi hoàn toàn dữ liệu cũ trên GSheet, lấy tạm ngày hôm nay
-        if (isNaN(targetDate.getTime())) {
-            return new Date();
-        }
+        let targetDate = new Date(startDateStr);
+        if (isNaN(targetDate.getTime())) return new Date();
         
         targetDate.setHours(0,0,0,0);
         if (repeatUnit === 'none' || targetDate >= today) return targetDate;
@@ -456,7 +389,7 @@
         const listElement = document.getElementById('eventsList');
         listElement.innerHTML = '';
         if (events.length === 0) {
-            listElement.innerHTML = '<p style="text-align:center; color:#64748b; grid-column: 1/-1; padding: 30px;">Chưa có sự kiện nào.</p>';
+            listElement.innerHTML = '<p style="text-align:center; color:#64748b; padding: 30px;">Chưa có sự kiện nào.</p>';
             return;
         }
 
@@ -467,7 +400,7 @@
             const computedTargetDate = getNextOccurrence(event.date, event.repeatValue, event.repeatUnit, today);
             const timeDiff = computedTargetDate.getTime() - today.getTime();
             const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
-            return { ...event, computedTargetDate: computedTargetDate, daysLeft: daysLeft };
+            return { ...event, computedTargetDate, daysLeft };
         });
 
         processedEvents.sort((a, b) => a.daysLeft - b.daysLeft);
@@ -511,8 +444,6 @@
         });
         switchView(currentView);
     }
-
-    renderEvents();
 </script>
 </body>
 </html>
