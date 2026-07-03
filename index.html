@@ -101,12 +101,14 @@
         .event-card { background-color: var(--card-bg); padding: 20px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #3b82f6; position: relative; overflow: hidden; }
         .events-list.grid-view .event-card { flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 160px; border-left: none; border-top: 6px solid #3b82f6; }
 
-        /* Hình nền mặc định theo hạng mục: tờ giấy cho "Giấy tờ", đồng hồ cho "Ngày quan trọng" */
+        /* Hình nền mặc định theo hạng mục: tờ giấy cho "Giấy tờ", đồng hồ cho "Ngày quan trọng", cờ-lê cho "Bảo trì/Bảo dưỡng" */
         .event-card.cat-giayto { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); }
         .event-card.cat-quantrong { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); }
+        .event-card.cat-baoduong { background: linear-gradient(135deg, #dcfce7 0%, #86efac 100%); }
 
         .event-card.cat-giayto::after,
-        .event-card.cat-quantrong::after {
+        .event-card.cat-quantrong::after,
+        .event-card.cat-baoduong::after {
             content: "";
             position: absolute;
             right: -14px;
@@ -122,7 +124,8 @@
             z-index: 0;
         }
         .events-list.grid-view .event-card.cat-giayto::after,
-        .events-list.grid-view .event-card.cat-quantrong::after {
+        .events-list.grid-view .event-card.cat-quantrong::after,
+        .events-list.grid-view .event-card.cat-baoduong::after {
             width: 130px;
             height: 130px;
         }
@@ -131,6 +134,9 @@
         }
         .event-card.cat-quantrong::after {
             background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PGNpcmNsZSBjeD0nMTInIGN5PScxMicgcj0nMTAnIGZpbGw9JyNiOTFjMWMnIG9wYWNpdHk9JzAuOScvPjxjaXJjbGUgY3g9JzEyJyBjeT0nMTInIHI9JzguNScgZmlsbD0nbm9uZScgc3Ryb2tlPSd3aGl0ZScgc3Ryb2tlLXdpZHRoPScwLjgnLz48bGluZSB4MT0nMTInIHkxPScxMicgeDI9JzEyJyB5Mj0nNi41JyBzdHJva2U9J3doaXRlJyBzdHJva2Utd2lkdGg9JzEuNCcgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJy8+PGxpbmUgeDE9JzEyJyB5MT0nMTInIHgyPScxNicgeTI9JzEzLjUnIHN0cm9rZT0nd2hpdGUnIHN0cm9rZS13aWR0aD0nMS40JyBzdHJva2UtbGluZWNhcD0ncm91bmQnLz48L3N2Zz4=");
+        }
+        .event-card.cat-baoduong::after {
+            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PGcgdHJhbnNmb3JtPSdyb3RhdGUoNDUgMTIgMTIpJz48cmVjdCB4PScxMC4zJyB5PScxLjUnIHdpZHRoPSczLjQnIGhlaWdodD0nMjEnIHJ4PScxLjcnIGZpbGw9JyMxNTgwM2QnIG9wYWNpdHk9JzAuOScvPjxjaXJjbGUgY3g9JzEyJyBjeT0nNCcgcj0nMy40JyBmaWxsPSdub25lJyBzdHJva2U9JyMxNTgwM2QnIHN0cm9rZS13aWR0aD0nMi4yJy8+PGNpcmNsZSBjeD0nMTInIGN5PScyMCcgcj0nMy40JyBmaWxsPSdub25lJyBzdHJva2U9JyMxNTgwM2QnIHN0cm9rZS13aWR0aD0nMi4yJy8+PC9nPjwvc3ZnPg==");
         }
 
         .event-card .event-info,
@@ -189,6 +195,7 @@
                 <select id="eventCategory">
                     <option value="giayto">📄 Giấy tờ</option>
                     <option value="quantrong">⭐ Ngày quan trọng</option>
+                    <option value="baoduong">🔧 Bảo trì/Bảo dưỡng</option>
                 </select>
             </div>
             <div>
@@ -229,6 +236,7 @@
                 <option value="all">📋 Mọi hạng mục</option>
                 <option value="giayto">📄 Giấy tờ</option>
                 <option value="quantrong">⭐ Ngày quan trọng</option>
+                <option value="baoduong">🔧 Bảo trì/Bảo dưỡng</option>
             </select>
             <select id="filterMilestone" class="filter-select" onchange="applyFilters()">
                 <option value="all">⏳ Mọi thời hạn</option>
@@ -411,7 +419,7 @@
             const notifiedMilestones = log[occurrenceKey] || [];
 
             if (!notifiedMilestones.includes(event.daysLeft)) {
-                const categoryText = event.category === 'giayto' ? 'Giấy tờ' : 'Ngày quan trọng';
+                const categoryText = event.category === 'giayto' ? 'Giấy tờ' : (event.category === 'quantrong' ? 'Ngày quan trọng' : 'Bảo trì/Bảo dưỡng');
                 new Notification(`⏰ Còn ${event.daysLeft} ngày: ${event.title}`, {
                     body: `${categoryText} — hạn tới: ${event.computedTargetDate.toLocaleDateString('vi-VN')}`,
                     tag: occurrenceKey + '_' + event.daysLeft
@@ -652,7 +660,7 @@
             else if (event.daysLeft <= 30) { statusClass = 'warning'; }
 
             const formattedDate = event.computedTargetDate.toLocaleDateString('vi-VN');
-            const categoryText = event.category === 'giayto' ? '📄 Giấy tờ' : '⭐ Sự kiện';
+            const categoryText = event.category === 'giayto' ? '📄 Giấy tờ' : (event.category === 'quantrong' ? '⭐ Sự kiện' : '🔧 Bảo trì/Bảo dưỡng');
             
             let repeatText = '';
             if (event.repeatUnit !== 'none') {
