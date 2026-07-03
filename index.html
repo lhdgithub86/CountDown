@@ -26,13 +26,31 @@
         .sync-success { background: #d1fae5; color: #065f46; }
         .sync-failed { background: #fee2e2; color: #b91c1c; }
 
-        /* Khung nhập URL & KEY của Supabase (ĐÃ HIỆN LẠI BÌNH THƯỜNG) */
+        /* Khung nhập URL & KEY của Supabase - phiên bản gọn, đặt cuối trang */
+        .config-footer {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .config-toggle-btn {
+            width: auto;
+            display: inline-block;
+            background: none;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .config-toggle-btn:hover { background-color: #f1f5f9; color: #334155; }
         .config-container {
             background: #f1f5f9;
             border: 1px solid #cbd5e1;
             padding: 15px;
             border-radius: 12px;
-            margin-bottom: 20px;
+            margin-top: 12px;
+            text-align: left;
             box-shadow: 0 4px 10px rgba(0,0,0,0.02);
         }
         .config-grid {
@@ -105,21 +123,6 @@
     <h1>📅 Trợ Lý Đếm Ngược Siêu Tốc Cloud</h1>
     <div id="syncStatusBox" class="sync-status"></div>
 
-    <div class="config-container">
-        <label style="font-weight: bold; color: #0f172a; margin-bottom: 10px;">🔌 Kết nối hệ thống dữ liệu đám mây Supabase</label>
-        <div class="config-grid">
-            <div>
-                <label for="sbUrl">Supabase URL</label>
-                <input type="text" id="sbUrl" placeholder="https://xxx.supabase.co">
-            </div>
-            <div>
-                <label for="sbKey">Supabase Anon Key</label>
-                <input type="text" id="sbKey" placeholder="Chuỗi Anon Key dài...">
-            </div>
-            <button class="btn-save-config" onclick="saveSupabaseConfig()">Kết Nối Đám Mây</button>
-        </div>
-    </div>
-
     <div class="form-container">
         <div class="form-group">
             <div>
@@ -174,6 +177,25 @@
     </div>
 
     <div class="events-list" id="eventsList"></div>
+
+    <div class="config-footer">
+        <button class="config-toggle-btn" id="configToggleBtn" onclick="toggleConfigBox()">
+            ⚙️ Cài đặt kết nối Supabase Cloud
+        </button>
+        <div class="config-container" id="configContainer" style="display:none;">
+            <div class="config-grid">
+                <div>
+                    <label for="sbUrl">Supabase URL</label>
+                    <input type="text" id="sbUrl" placeholder="https://xxx.supabase.co">
+                </div>
+                <div>
+                    <label for="sbKey">Supabase Anon Key</label>
+                    <input type="text" id="sbKey" placeholder="Chuỗi Anon Key dài...">
+                </div>
+                <button class="btn-save-config" onclick="saveSupabaseConfig()">Kết Nối Đám Mây</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -191,11 +213,28 @@
             document.getElementById('sbKey').value = savedKey;
             initSupabase(savedUrl, savedKey);
             fetchFromCloud();
+            // Đã từng kết nối -> thu gọn khối cấu hình mặc định
+            setConfigBoxVisible(false);
         } else {
             events = JSON.parse(localStorage.getItem('countdown_events_v3')) || [];
             renderEvents();
+            // Chưa từng kết nối -> tự mở khối cấu hình để nhắc người dùng
+            setConfigBoxVisible(true);
         }
     };
+
+    function setConfigBoxVisible(visible) {
+        const box = document.getElementById('configContainer');
+        const btn = document.getElementById('configToggleBtn');
+        box.style.display = visible ? 'block' : 'none';
+        btn.innerText = visible ? '⚙️ Ẩn cài đặt kết nối Supabase' : '⚙️ Cài đặt kết nối Supabase Cloud';
+    }
+
+    function toggleConfigBox() {
+        const box = document.getElementById('configContainer');
+        const isHidden = box.style.display === 'none';
+        setConfigBoxVisible(isHidden);
+    }
 
     function initSupabase(url, key) {
         if(url && key) {
@@ -213,6 +252,7 @@
         initSupabase(url, key);
         alert('Kết nối Supabase Cloud thành công!');
         fetchFromCloud();
+        setConfigBoxVisible(false);
     }
 
     function showSyncStatus(text, className, duration = 3000) {
