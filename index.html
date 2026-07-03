@@ -85,8 +85,39 @@
         
         .events-list { display: grid; gap: 15px; }
         .events-list.grid-view { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-        .event-card { background-color: var(--card-bg); padding: 20px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #3b82f6; }
+        .event-card { background-color: var(--card-bg); padding: 20px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #3b82f6; position: relative; overflow: hidden; }
         .events-list.grid-view .event-card { flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 160px; border-left: none; border-top: 6px solid #3b82f6; }
+
+        /* Hình nền mặc định theo hạng mục: tờ giấy cho "Giấy tờ", đồng hồ cho "Ngày quan trọng" */
+        .event-card.cat-giayto { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); }
+        .event-card.cat-quantrong { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); }
+
+        .event-card.cat-giayto::after,
+        .event-card.cat-quantrong::after {
+            content: "";
+            position: absolute;
+            right: -10px;
+            bottom: -10px;
+            width: 90px;
+            height: 90px;
+            background-repeat: no-repeat;
+            background-size: contain;
+            opacity: 0.16;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .event-card.cat-giayto::after {
+            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjMDM2OWExJyBzdHJva2Utd2lkdGg9JzEuNCcgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJyBzdHJva2UtbGluZWpvaW49J3JvdW5kJz48cGF0aCBkPSdNNiAyaDhsNSA1djE1SDZ6Jy8+PHBhdGggZD0nTTE0IDJ2NWg1Jy8+PGxpbmUgeDE9JzknIHkxPScxMycgeDI9JzE2JyB5Mj0nMTMnLz48bGluZSB4MT0nOScgeTE9JzE3JyB4Mj0nMTYnIHkyPScxNycvPjxsaW5lIHgxPSc5JyB5MT0nOScgeDI9JzExJyB5Mj0nOScvPjwvc3ZnPg==");
+        }
+        .event-card.cat-quantrong::after {
+            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjYjkxYzFjJyBzdHJva2Utd2lkdGg9JzEuNCcgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJyBzdHJva2UtbGluZWpvaW49J3JvdW5kJz48Y2lyY2xlIGN4PScxMicgY3k9JzEyJyByPSc5Jy8+PHBvbHlsaW5lIHBvaW50cz0nMTIgNyAxMiAxMiAxNS41IDE0Jy8+PC9zdmc+");
+        }
+
+        .event-card .event-info,
+        .event-card .countdown-display {
+            position: relative;
+            z-index: 1;
+        }
         
         .event-card.urgent { border-left-color: var(--danger-color); }
         .event-card.warning { border-left-color: var(--warning-color); }
@@ -567,16 +598,8 @@
                 reminderText = `<span class="reminder-badge">⏰ Mốc nhắc ${event.daysLeft} ngày</span>`;
             }
 
-            let bgStyle = '';
-            if (event.category === 'giayto') {
-                bgStyle = 'background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;';
-            } else if (event.category === 'quantrong') {
-                bgStyle = 'background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;';
-            }
-
             const card = document.createElement('div');
-            card.className = `event-card ${statusClass}`;
-            if(bgStyle) card.setAttribute('style', bgStyle);
+            card.className = `event-card ${statusClass} cat-${event.category}`;
 
             // Dùng data-id + addEventListener thay vì nhúng trực tiếp id vào chuỗi onclick,
             // để tránh vỡ cú pháp khi id là UUID (có ký tự "-")
