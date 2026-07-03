@@ -75,11 +75,24 @@
         button.btn-add { background: var(--primary-gradient); color: white; border: none; cursor: pointer; font-weight: bold; }
         button.btn-update-mode { background: linear-gradient(135deg, #f59e0b, #d97706); }
         
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .toolbar-buttons { display: flex; gap: 10px; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .toolbar-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
         .view-btn, .sync-manual-btn { width: auto; padding: 8px 16px; background-color: #e2e8f0; color: #475569; border: none; font-weight: 600; border-radius: 6px; cursor: pointer; }
         .view-btn.active { background: var(--primary-gradient); color: white; }
         .sync-manual-btn.notify-on { background-color: #d1fae5; color: #065f46; }
+        .filter-toolbar { margin-bottom: 20px; }
+        .filter-select {
+            width: auto;
+            padding: 8px 14px;
+            background-color: #e2e8f0;
+            color: #334155;
+            border: none;
+            font-weight: 600;
+            font-size: 13px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .filter-select:focus { outline: 2px solid #3b82f6; }
 
         .reminder-badge { display: inline-block; background-color: #fff7ed; color: #c2410c; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-top: 8px; margin-left: 6px; border: 1px solid #fed7aa; }
         
@@ -208,6 +221,24 @@
             <button class="sync-manual-btn" onclick="fetchFromCloud()">🔄 Đồng bộ dữ liệu</button>
             <button id="notifyBtn" class="sync-manual-btn" onclick="requestNotificationPermission()">🔔 Bật thông báo nhắc hẹn</button>
         </div>
+    </div>
+
+    <div class="toolbar filter-toolbar">
+        <div class="toolbar-buttons">
+            <select id="filterCategory" class="filter-select" onchange="applyFilters()">
+                <option value="all">📋 Mọi hạng mục</option>
+                <option value="giayto">📄 Giấy tờ</option>
+                <option value="quantrong">⭐ Ngày quan trọng</option>
+            </select>
+            <select id="filterMilestone" class="filter-select" onchange="applyFilters()">
+                <option value="all">⏳ Mọi thời hạn</option>
+                <option value="30">≤ 30 ngày</option>
+                <option value="15">≤ 15 ngày</option>
+                <option value="5">≤ 5 ngày</option>
+                <option value="1">≤ 1 ngày</option>
+                <option value="expired">Đã quá hạn</option>
+            </select>
+        </div>
         <div class="toolbar-buttons">
             <button id="listViewBtn" class="view-btn active" onclick="switchView('list')">📛 Dạng Dòng</button>
             <button id="gridViewBtn" class="view-btn" onclick="switchView('grid')">🎴 Dạng Thẻ</button>
@@ -238,6 +269,8 @@
 
 <script>
     let events = [];
+    let currentCategoryFilter = 'all';
+    let currentMilestoneFilter = 'all';
     let currentView = localStorage.getItem('countdown_view_pref') || 'list';
     let editModeId = null;
     let supabaseClient = null;
@@ -560,6 +593,19 @@
         return targetDate;
     }
 
+    function applyFilters() {
+        currentCategoryFilter = document.getElementById('filterCategory').value;
+        currentMilestoneFilter = document.getElementById('filterMilestone').value;
+        renderEvents();
+    }
+
+    function matchesMilestoneFilter(daysLeft, filterValue) {
+        if (filterValue === 'all') return true;
+        if (filterValue === 'expired') return daysLeft < 0;
+        const threshold = parseInt(filterValue, 10);
+        return daysLeft >= 0 && daysLeft <= threshold;
+    }
+
     function renderEvents() {
         const listElement = document.getElementById('eventsList');
         listElement.innerHTML = '';
@@ -578,11 +624,25 @@
             return { ...event, computedTargetDate, daysLeft };
         });
 
-        processedEvents.sort((a, b) => a.daysLeft - b.daysLeft);
-
+        // Luôn kiểm tra nhắc nhở trên TOÀN BỘ sự kiện, không phụ thuộc bộ lọc đang chọn
         checkAndNotifyReminders(processedEvents);
 
-        processedEvents.forEach(event => {
+        // Áp dụng bộ lọc hạng mục + mốc hạn cho phần hiển thị
+        const filteredEvents = processedEvents.filter(event => {
+            const categoryOk = currentCategoryFilter === 'all' || event.category === currentCategoryFilter;
+            const milestoneOk = matchesMilestoneFilter(event.daysLeft, currentMilestoneFilter);
+            return categoryOk && milestoneOk;
+        });
+
+        filteredEvents.sort((a, b) => a.daysLeft - b.daysLeft);
+
+        if (filteredEvents.length === 0) {
+            listElement.innerHTML = '<p style="text-align:center; color:#64748b; padding: 30px;">Không có sự kiện nào khớp với bộ lọc đang chọn.</p>';
+            switchView(currentView);
+            return;
+        }
+
+        filteredEvents.forEach(event => {
             let statusClass = 'safe';
             let statusText = `Còn ${event.daysLeft} ngày`;
 
