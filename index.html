@@ -110,7 +110,7 @@
                 <input type="text" id="sbUrl" placeholder="https://xxx.supabase.co">
             </div>
             <div>
-                <label wholesaler for="sbKey">Supabase Anon Key</label>
+                <label for="sbKey">Supabase Anon Key</label>
                 <input type="text" id="sbKey" placeholder="Chuỗi Anon Key dài...">
             </div>
             <button class="btn-save-config" onclick="saveSupabaseConfig()">Kết Nối Đám Mây</button>
@@ -257,6 +257,12 @@
         if (editModeId !== null) updateEvent(); else addEvent();
     }
 
+    // Sinh ID cục bộ an toàn khi KHÔNG dùng Supabase (không còn dùng Date.now() để tránh trùng lặp)
+    function generateLocalId() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return 'local-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+    }
+
     async function addEvent() {
         const title = document.getElementById('eventTitle').value.trim();
         const date = document.getElementById('eventDate').value;
@@ -271,20 +277,34 @@
 
         if (!title || !date) { alert('Vui lòng điền đầy đủ thông tin!'); return; }
 
-        const newEvent = { id: Date.now(), title, date, category, repeatValue, repeatUnit };
+        const newEventPayload = { title, date, category, repeatValue, repeatUnit };
 
-        events.push(newEvent);
-        renderEvents();
-
-        if(supabaseClient) {
-            const { error } = await supabaseClient.from('events').insert([newEvent]);
-            if(error) alert('Lỗi đẩy dữ liệu lên Cloud: ' + error.message);
+        if (supabaseClient) {
+            // KHÔNG tự gán id ở client nữa: để Supabase tự sinh (thường là UUID)
+            // rồi lấy lại bản ghi vừa tạo (kèm id thật) để hiển thị đúng.
+            const { data, error } = await supabaseClient
+                .from('events')
+                .insert([newEventPayload])
+                .select();
+            if (error) {
+                alert('Lỗi đẩy dữ liệu lên Cloud: ' + error.message);
+                return;
+            }
+            const savedEvent = (data && data[0]) ? data[0] : { ...newEventPayload, id: generateLocalId() };
+            events.push(savedEvent);
+        } else {
+            // Không có Supabase: lưu local với ID tự sinh an toàn
+            events.push({ ...newEventPayload, id: generateLocalId() });
+            localStorage.setItem('countdown_events_v3', JSON.stringify(events));
         }
+
+        renderEvents();
         resetForm();
     }
 
     function startEditEvent(id) {
-        const target = events.find(e => Number(e.id) === Number(id));
+        // So sánh theo chuỗi để hoạt động đúng với cả ID số (local) lẫn UUID (Supabase)
+        const target = events.find(e => String(e.id) === String(id));
         if(!target) return;
 
         editModeId = id;
@@ -320,7 +340,7 @@
         }
 
         events = events.map(e => {
-            if(Number(e.id) === Number(editModeId)) {
+            if(String(e.id) === String(editModeId)) {
                 return { ...e, title, date, category, repeatValue, repeatUnit };
             }
             return e;
@@ -332,6 +352,8 @@
                 .update({ title, date, category, repeatValue, repeatUnit })
                 .eq('id', editModeId);
             if(error) alert('Lỗi cập nhật Cloud: ' + error.message);
+        } else {
+            localStorage.setItem('countdown_events_v3', JSON.stringify(events));
         }
         resetForm();
     }
@@ -349,14 +371,16 @@
 
     async function deleteEvent(id) {
         if(confirm('Bạn có chắc muốn xóa mục này?')) {
-            events = events.filter(event => Number(event.id) !== Number(id));
+            events = events.filter(event => String(event.id) !== String(id));
             renderEvents();
 
             if(supabaseClient) {
                 const { error } = await supabaseClient.from('events').delete().eq('id', id);
                 if(error) alert('Lỗi xóa trên Cloud: ' + error.message);
+            } else {
+                localStorage.setItem('countdown_events_v3', JSON.stringify(events));
             }
-            if (editModeId === id) resetForm();
+            if (String(editModeId) === String(id)) resetForm();
         }
     }
 
@@ -415,7 +439,6 @@
                 repeatText = `<span class="repeat-badge">🔁 Mỗi ${event.repeatValue} ${unitMap[event.repeatUnit]}</span>`;
             }
 
-            // === TỰ ĐỘNG GÁN MÀU NỀN THEO BIẾN CATEGORY THÔNG QUA SCRIPT ĐỂ AN TOÀN TUYỆT ĐỐI ===
             let bgStyle = '';
             if (event.category === 'giayto') {
                 bgStyle = 'background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;';
@@ -425,11 +448,13 @@
 
             const card = document.createElement('div');
             card.className = `event-card ${statusClass}`;
-            if(bgStyle) card.setAttribute('style', bgStyle); // Ép kiểu style nền trực tiếp
+            if(bgStyle) card.setAttribute('style', bgStyle);
 
+            // Dùng data-id + addEventListener thay vì nhúng trực tiếp id vào chuỗi onclick,
+            // để tránh vỡ cú pháp khi id là UUID (có ký tự "-")
             card.innerHTML = `
                 <div class="event-info">
-                    <h3>${event.title}</h3>
+                    <h3></h3>
                     <p style="font-weight: 600; color: #475569; margin-bottom: 4px;">${categoryText}</p>
                     <p>Hạn tới: <b>${formattedDate}</b></p>
                     ${repeatText}
@@ -437,11 +462,17 @@
                 <div class="countdown-display">
                     <span class="days-left">${statusText}</span>
                     <div class="action-btns">
-                        <button class="edit-btn" onclick="startEditEvent(${event.id})">✏️ Sửa</button>
-                        <button class="delete-btn" onclick="deleteEvent(${event.id})">🗑️ Xóa</button>
+                        <button class="edit-btn" data-id="${event.id}">✏️ Sửa</button>
+                        <button class="delete-btn" data-id="${event.id}">🗑️ Xóa</button>
                     </div>
                 </div>
             `;
+            // Gán tên sự kiện bằng textContent để tránh lỗi XSS nếu tiêu đề chứa ký tự đặc biệt (<, >, ")
+            card.querySelector('.event-info h3').textContent = event.title;
+
+            card.querySelector('.edit-btn').addEventListener('click', () => startEditEvent(event.id));
+            card.querySelector('.delete-btn').addEventListener('click', () => deleteEvent(event.id));
+
             listElement.appendChild(card);
         });
         switchView(currentView);
