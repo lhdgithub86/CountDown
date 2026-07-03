@@ -213,7 +213,7 @@
             </div>
             <div>
                 <label for="eventCategory">Phân loại</label>
-                <select id="eventCategory" onchange="toggleCustomCategory()">
+                <select id="eventCategory">
                     <option value="giayto">📄 Giấy tờ</option>
                     <option value="quantrong">⭐ Ngày quan trọng</option>
                     <option value="baoduong">🔧 Bảo hành/Bảo dưỡng</option>
@@ -221,10 +221,6 @@
                     <option value="suckhoe">❤️ Sức khỏe</option>
                     <option value="khac">🏷️ Khác</option>
                 </select>
-            </div>
-            <div id="customCategoryGroup" style="display: none;">
-                <label for="eventCustomCategory">Tên hạng mục tự đặt</label>
-                <input type="text" id="eventCustomCategory" placeholder="Ví dụ: Thú cưng, Học tập...">
             </div>
             <div>
                 <label for="repeatType">Chu kỳ lặp</label>
@@ -469,11 +465,6 @@
         document.getElementById('customRepeatGroup').style.display = repeatType === 'custom' ? 'block' : 'none';
     }
 
-    function toggleCustomCategory() {
-        const category = document.getElementById('eventCategory').value;
-        document.getElementById('customCategoryGroup').style.display = category === 'khac' ? 'block' : 'none';
-    }
-
     // Bảng nhãn + icon hiển thị cho từng hạng mục (dùng chung cho cả thẻ sự kiện lẫn thông báo nhắc hẹn)
     const CATEGORY_LABELS = {
         giayto: { icon: '📄', name: 'Giấy tờ' },
@@ -486,9 +477,6 @@
 
     function getCategoryLabel(event) {
         const info = CATEGORY_LABELS[event.category] || CATEGORY_LABELS.khac;
-        if (event.category === 'khac' && event.customCategory && event.customCategory.trim()) {
-            return `${info.icon} ${event.customCategory.trim()}`;
-        }
         return `${info.icon} ${info.name}`;
     }
 
@@ -522,7 +510,6 @@
         const date = document.getElementById('eventDate').value;
         const category = document.getElementById('eventCategory').value;
         const repeatType = document.getElementById('repeatType').value;
-        const customCategory = category === 'khac' ? document.getElementById('eventCustomCategory').value.trim() : '';
 
         let repeatValue = 0, repeatUnit = 'none';
         if (repeatType === 'custom') {
@@ -532,7 +519,7 @@
 
         if (!title || !date) { alert('Vui lòng điền đầy đủ thông tin!'); return; }
 
-        const newEventPayload = { title, date, category, repeatValue, repeatUnit, customCategory };
+        const newEventPayload = { title, date, category, repeatValue, repeatUnit };
 
         if (supabaseClient) {
             // KHÔNG tự gán id ở client nữa: để Supabase tự sinh (thường là UUID)
@@ -566,8 +553,6 @@
         document.getElementById('eventTitle').value = target.title;
         document.getElementById('eventDate').value = target.date;
         document.getElementById('eventCategory').value = target.category;
-        document.getElementById('eventCustomCategory').value = target.customCategory || '';
-        toggleCustomCategory();
 
         if (target.repeatUnit && target.repeatUnit !== 'none') {
             document.getElementById('repeatType').value = 'custom';
@@ -589,8 +574,6 @@
         const date = document.getElementById('eventDate').value;
         const category = document.getElementById('eventCategory').value;
         const repeatType = document.getElementById('repeatType').value;
-        const customCategory = category === 'khac' ? document.getElementById('eventCustomCategory').value.trim() : '';
-
         let repeatValue = 0, repeatUnit = 'none';
         if (repeatType === 'custom') {
             repeatValue = parseInt(document.getElementById('repeatValue').value) || 1;
@@ -599,7 +582,7 @@
 
         events = events.map(e => {
             if(String(e.id) === String(editModeId)) {
-                return { ...e, title, date, category, repeatValue, repeatUnit, customCategory };
+                return { ...e, title, date, category, repeatValue, repeatUnit };
             }
             return e;
         });
@@ -607,7 +590,7 @@
 
         if(supabaseClient) {
             const { error } = await supabaseClient.from('events')
-                .update({ title, date, category, repeatValue, repeatUnit, customCategory })
+                .update({ title, date, category, repeatValue, repeatUnit })
                 .eq('id', editModeId);
             if(error) alert('Lỗi cập nhật Cloud: ' + error.message);
         } else {
@@ -621,8 +604,6 @@
         document.getElementById('eventTitle').value = '';
         document.getElementById('eventDate').value = '';
         document.getElementById('eventCategory').value = 'giayto';
-        document.getElementById('eventCustomCategory').value = '';
-        toggleCustomCategory();
         document.getElementById('repeatType').value = 'none';
         toggleRepeatUnit();
         const submitBtn = document.getElementById('submitEventBtn');
