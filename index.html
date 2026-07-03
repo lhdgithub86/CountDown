@@ -17,242 +17,82 @@
             --card-bg: #ffffff;
             --text-main: #1e293b;
         }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-gradient); min-height: 100vh; margin: 0; padding: 30px 20px; color: var(--text-main); }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { text-align: center; color: #1e3a8a; font-size: 2.2rem; margin-bottom: 25px; }
         
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: var(--bg-gradient); 
-            min-height: 100vh; 
-            margin: 0; 
-            padding: 30px 20px; 
-            color: var(--text-main); 
-        }
-        
-        .container { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-        }
-        
-        h1 { 
-            text-align: center; 
-            color: #1e3a8a; 
-            font-size: 2.2rem; 
-            margin-bottom: 25px; 
-        }
-        
-        .sync-status { 
-            text-align: center; 
-            font-size: 13px; 
-            font-weight: bold; 
-            margin-bottom: 15px; 
-            padding: 6px; 
-            border-radius: 20px; 
-            display: none; 
-        }
-        
+        .sync-status { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 15px; padding: 6px; border-radius: 20px; display: none; }
         .sync-loading { background: #fef3c7; color: #d97706; }
         .sync-success { background: #d1fae5; color: #065f46; }
         .sync-failed { background: #fee2e2; color: #b91c1c; }
 
+        /* Khung nhập URL & KEY của Supabase (ĐÃ HIỆN LẠI BÌNH THƯỜNG) */
         .config-container {
-            display: none !important;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
         }
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+        @media (max-width: 768px) { .config-grid { grid-template-columns: 1fr; } }
+        
+        .btn-save-config { background: #0f172a; color: white; border: none; font-weight: bold; cursor: pointer; height: 45px;}
 
-        .form-container { 
-            background-color: var(--card-bg); 
-            padding: 25px; 
-            border-radius: 16px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
-            margin-bottom: 30px; 
-        }
-        
-        .form-group { 
-            display: grid; 
-            grid-template-columns: 2fr 1.2fr 1fr 1fr 1.5fr auto; 
-            gap: 15px; 
-            align-items: end; 
-        }
-        
+        .form-container { background-color: var(--card-bg); padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .form-group { display: grid; grid-template-columns: 2fr 1.2fr 1fr 1fr 1.5fr auto; gap: 15px; align-items: end; }
         .repeat-options { display: flex; gap: 5px; }
         .repeat-options input { width: 60px; text-align: center; }
+        @media (max-width: 950px) { .form-group { grid-template-columns: 1fr; } }
         
-        @media (max-width: 950px) { 
-            .form-group { grid-template-columns: 1fr; } 
-        }
+        label { font-weight: 600; font-size: 14px; margin-bottom: 8px; display: block; color: #475569; }
+        input, select, button { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 14px; transition: all 0.3s ease; }
         
-        label { 
-            font-weight: 600; 
-            font-size: 14px; 
-            margin-bottom: 8px; 
-            display: block; 
-            color: #475569; 
-        }
+        button.btn-add { background: var(--primary-gradient); color: white; border: none; cursor: pointer; font-weight: bold; }
+        button.btn-update-mode { background: linear-gradient(135deg, #f59e0b, #d97706); }
         
-        input, select, button { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 8px; 
-            box-sizing: border-box; 
-            font-size: 14px; 
-            transition: all 0.3s ease; 
-        }
-        
-        button.btn-add { 
-            background: var(--primary-gradient); 
-            color: white; 
-            border: none; 
-            cursor: pointer; 
-            font-weight: bold; 
-        }
-        
-        button.btn-update-mode { 
-            background: linear-gradient(135deg, #f59e0b, #d97706); 
-        }
-        
-        .toolbar { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px; 
-        }
-        
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .toolbar-buttons { display: flex; gap: 10px; }
+        .view-btn, .sync-manual-btn { width: auto; padding: 8px 16px; background-color: #e2e8f0; color: #475569; border: none; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .view-btn.active { background: var(--primary-gradient); color: white; }
         
-        .view-btn, .sync-manual-btn { 
-            width: auto; 
-            padding: 8px 16px; 
-            background-color: #e2e8f0; 
-            color: #475569; 
-            border: none; 
-            font-weight: 600; 
-            border-radius: 6px; 
-            cursor: pointer; 
-        }
+        .events-list { display: grid; gap: 15px; }
+        .events-list.grid-view { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        .event-card { background-color: var(--card-bg); padding: 20px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #3b82f6; }
+        .events-list.grid-view .event-card { flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 160px; border-left: none; border-top: 6px solid #3b82f6; }
         
-        .view-btn.active { 
-            background: var(--primary-gradient); 
-            color: white; 
-        }
+        .event-card.urgent { border-left-color: var(--danger-color); }
+        .event-card.warning { border-left-color: var(--warning-color); }
+        .event-card.safe { border-left-color: var(--success-color); }
+        .event-card.expired { border-left-color: #94a3b8; opacity: 0.7; }
         
-        .events-list { 
-            display: grid; 
-            gap: 15px; 
-        }
+        .events-list.grid-view .event-card.urgent { border-top-color: var(--danger-color); }
+        .events-list.grid-view .event-card.warning { border-top-color: var(--warning-color); }
+        .events-list.grid-view .event-card.safe { border-top-color: var(--success-color); }
+        .events-list.grid-view .event-card.expired { border-top-color: #94a3b8; }
         
-        .events-list.grid-view { 
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-        }
+        .event-info h3 { margin: 0 0 8px 0; color: #0f172a; font-size: 1.1rem; }
+        .event-info p { margin: 0; font-size: 13px; color: #64748b; }
+        .repeat-badge { display: inline-block; background-color: #f0fdf4; color: #166534; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-top: 8px; border: 1px solid #bbf7d0; }
         
-        .event-card { 
-            padding: 20px; 
-            border-radius: 14px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-left: 6px solid #3b82f6; 
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
+        .countdown-display { text-align: right; display: flex; align-items: center; gap: 15px; }
+        .events-list.grid-view .countdown-display { width: 100%; justify-content: space-between; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
+        .days-left { font-size: 18px; font-weight: 700; }
         
-        .event-card:active {
-            transform: scale(0.98);
-        }
-        
-        .events-list.grid-view .event-card { 
-            flex-direction: column; 
-            align-items: flex-start; 
-            justify-content: space-between; 
-            min-height: 160px; 
-            border-left: none; 
-            border-top: 6px solid #3b82f6; 
-        }
-        
-        .event-card.cat-giayto {
-            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
-            color: #0369a1 !important;
-        }
-        .event-card.cat-giayto h3 { color: #0c4a6e !important; }
-        .event-card.cat-giayto p { color: #0284c7 !important; }
-
-        .event-card.cat-quantrong {
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
-            color: #991b1b !important;
-        }
-        .event-card.cat-quantrong h3 { color: #7f1d1d !important; }
-        .event-card.cat-quantrong p { color: #b91c1c !important; }
-
-        .event-card.urgent { border-left-color: var(--danger-color) !important; }
-        .event-card.warning { border-left-color: var(--warning-color) !important; }
-        .event-card.safe { border-left-color: var(--success-color) !important; }
-        .event-card.expired { border-left-color: #94a3b8 !important; opacity: 0.65; }
-        
-        .events-list.grid-view .event-card.urgent { border-top-color: var(--danger-color) !important; }
-        .events-list.grid-view .event-card.warning { border-top-color: var(--warning-color) !important; }
-        .events-list.grid-view .event-card.safe { border-top-color: var(--success-color) !important; }
-        .events-list.grid-view .event-card.expired { border-top-color: #94a3b8 !important; }
-        
-        .event-info h3 { margin: 0 0 8px 0; font-size: 1.15rem; font-weight: 700; }
-        .event-info p { margin: 0; font-size: 13px; font-weight: 500; }
-        
-        .repeat-badge { 
-            display: inline-block; 
-            background-color: rgba(255, 255, 255, 0.6); 
-            color: inherit; 
-            padding: 4px 10px; 
-            border-radius: 6px; 
-            font-size: 11px; 
-            font-weight: 700; 
-            margin-top: 8px; 
-            border: 1px solid rgba(0, 0, 0, 0.05); 
-        }
-        
-        .countdown-display { 
-            text-align: right; 
-            display: flex; 
-            align-items: center; 
-            gap: 15px; 
-        }
-        
-        .events-list.grid-view .countdown-display { 
-            width: 100%; 
-            justify-content: space-between; 
-            margin-top: 15px; 
-            padding-top: 10px; 
-            border-top: 1px dashed rgba(0,0,0,0.1); 
-        }
-        
-        .days-left { 
-            font-size: 18px; 
-            font-weight: 800; 
-            color: inherit !important; 
-        }
+        .urgent .days-left { color: var(--danger-color); }
+        .warning .days-left { color: var(--warning-color); }
+        .safe .days-left { color: var(--success-color); }
         
         .action-btns { display: flex; gap: 6px; }
-        
-        .edit-btn { 
-            background-color: rgba(254, 243, 199, 0.8); 
-            color: #d97706; 
-            border: 1px solid #fde68a; 
-            font-size: 13px; 
-            cursor: pointer; 
-            width: auto; 
-            padding: 6px 10px; 
-            border-radius: 6px; 
-            font-weight: 600; 
-        }
+        .edit-btn { background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a; font-size: 14px; cursor: pointer; width: auto; padding: 6px 10px; border-radius: 6px; font-weight: 600; }
         .edit-btn:hover { background-color: #f59e0b; color: white; }
-        
-        .delete-btn { 
-            background-color: rgba(255, 241, 242, 0.8); 
-            color: #f43f5e; 
-            border: 1px solid #ffe4e6; 
-            font-size: 13px; 
-            cursor: pointer; 
-            width: auto; 
-            padding: 6px 10px; 
-            border-radius: 6px; 
-            font-weight: 600; 
-        }
+        .delete-btn { background-color: #fff1f2; color: #f43f5e; border: 1px solid #ffe4e6; font-size: 14px; cursor: pointer; width: auto; padding: 6px 10px; border-radius: 6px; font-weight: 600; }
         .delete-btn:hover { background-color: var(--danger-color); color: white; }
     </style>
 </head>
@@ -270,7 +110,7 @@
                 <input type="text" id="sbUrl" placeholder="https://xxx.supabase.co">
             </div>
             <div>
-                <label for="sbKey">Supabase Anon Key</label>
+                <label wholesaler for="sbKey">Supabase Anon Key</label>
                 <input type="text" id="sbKey" placeholder="Chuỗi Anon Key dài...">
             </div>
             <button class="btn-save-config" onclick="saveSupabaseConfig()">Kết Nối Đám Mây</button>
@@ -370,7 +210,6 @@
 
     function showSyncStatus(text, className, duration = 3000) {
         const box = document.getElementById('syncStatusBox');
-        if(!box) return;
         box.innerText = text;
         box.className = `sync-status ${className}`;
         box.style.display = 'block';
@@ -403,7 +242,6 @@
         currentView = viewType;
         localStorage.setItem('countdown_view_pref', viewType);
         const listElement = document.getElementById('eventsList');
-        if (!listElement) return;
         if (viewType === 'grid') {
             listElement.classList.add('grid-view');
             document.getElementById('gridViewBtn').classList.add('active');
@@ -459,4 +297,155 @@
             document.getElementById('repeatValue').value = target.repeatValue;
             document.getElementById('repeatUnit').value = target.repeatUnit;
         } else {
-            document.getElementById('repeatType
+            document.getElementById('repeatType').value = 'none';
+        }
+
+        toggleRepeatUnit();
+        const submitBtn = document.getElementById('submitEventBtn');
+        submitBtn.innerText = "Cập nhật";
+        submitBtn.classList.add('btn-update-mode');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function updateEvent() {
+        const title = document.getElementById('eventTitle').value.trim();
+        const date = document.getElementById('eventDate').value;
+        const category = document.getElementById('eventCategory').value;
+        const repeatType = document.getElementById('repeatType').value;
+
+        let repeatValue = 0, repeatUnit = 'none';
+        if (repeatType === 'custom') {
+            repeatValue = parseInt(document.getElementById('repeatValue').value) || 1;
+            repeatUnit = document.getElementById('repeatUnit').value;
+        }
+
+        events = events.map(e => {
+            if(Number(e.id) === Number(editModeId)) {
+                return { ...e, title, date, category, repeatValue, repeatUnit };
+            }
+            return e;
+        });
+        renderEvents();
+
+        if(supabaseClient) {
+            const { error } = await supabaseClient.from('events')
+                .update({ title, date, category, repeatValue, repeatUnit })
+                .eq('id', editModeId);
+            if(error) alert('Lỗi cập nhật Cloud: ' + error.message);
+        }
+        resetForm();
+    }
+
+    function resetForm() {
+        editModeId = null;
+        document.getElementById('eventTitle').value = '';
+        document.getElementById('eventDate').value = '';
+        document.getElementById('repeatType').value = 'none';
+        toggleRepeatUnit();
+        const submitBtn = document.getElementById('submitEventBtn');
+        submitBtn.innerText = "Thêm";
+        submitBtn.classList.remove('btn-update-mode');
+    }
+
+    async function deleteEvent(id) {
+        if(confirm('Bạn có chắc muốn xóa mục này?')) {
+            events = events.filter(event => Number(event.id) !== Number(id));
+            renderEvents();
+
+            if(supabaseClient) {
+                const { error } = await supabaseClient.from('events').delete().eq('id', id);
+                if(error) alert('Lỗi xóa trên Cloud: ' + error.message);
+            }
+            if (editModeId === id) resetForm();
+        }
+    }
+
+    function getNextOccurrence(startDateStr, repeatValue, repeatUnit, today) {
+        if (!startDateStr) return new Date();
+        let targetDate = new Date(startDateStr);
+        if (isNaN(targetDate.getTime())) return new Date();
+        
+        targetDate.setHours(0,0,0,0);
+        if (repeatUnit === 'none' || targetDate >= today) return targetDate;
+
+        while (targetDate < today) {
+            if (repeatUnit === 'days') targetDate.setDate(targetDate.getDate() + repeatValue);
+            else if (repeatUnit === 'weeks') targetDate.setDate(targetDate.getDate() + (repeatValue * 7));
+            else if (repeatUnit === 'months') targetDate.setMonth(targetDate.getMonth() + repeatValue);
+            else if (repeatUnit === 'years') targetDate.setFullYear(targetDate.getFullYear() + repeatValue);
+        }
+        return targetDate;
+    }
+
+    function renderEvents() {
+        const listElement = document.getElementById('eventsList');
+        listElement.innerHTML = '';
+        if (events.length === 0) {
+            listElement.innerHTML = '<p style="text-align:center; color:#64748b; padding: 30px;">Chưa có sự kiện nào.</p>';
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const processedEvents = events.map(event => {
+            const computedTargetDate = getNextOccurrence(event.date, event.repeatValue, event.repeatUnit, today);
+            const timeDiff = computedTargetDate.getTime() - today.getTime();
+            const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+            return { ...event, computedTargetDate, daysLeft };
+        });
+
+        processedEvents.sort((a, b) => a.daysLeft - b.daysLeft);
+
+        processedEvents.forEach(event => {
+            let statusClass = 'safe';
+            let statusText = `Còn ${event.daysLeft} ngày`;
+
+            if (event.daysLeft === 0) { statusClass = 'urgent'; statusText = `HÔM NAY! 🎉`; }
+            else if (event.daysLeft < 0) { statusClass = 'expired'; statusText = `Đã qua ${Math.abs(event.daysLeft)} ngày`; }
+            else if (event.daysLeft <= 7) { statusClass = 'urgent'; }
+            else if (event.daysLeft <= 30) { statusClass = 'warning'; }
+
+            const formattedDate = event.computedTargetDate.toLocaleDateString('vi-VN');
+            const categoryText = event.category === 'giayto' ? '📄 Giấy tờ' : '⭐ Sự kiện';
+            
+            let repeatText = '';
+            if (event.repeatUnit !== 'none') {
+                const unitMap = { days: 'Ngày', weeks: 'Tuần', months: 'Tháng', years: 'Năm' };
+                repeatText = `<span class="repeat-badge">🔁 Mỗi ${event.repeatValue} ${unitMap[event.repeatUnit]}</span>`;
+            }
+
+            // === TỰ ĐỘNG GÁN MÀU NỀN THEO BIẾN CATEGORY THÔNG QUA SCRIPT ĐỂ AN TOÀN TUYỆT ĐỐI ===
+            let bgStyle = '';
+            if (event.category === 'giayto') {
+                bgStyle = 'background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;';
+            } else if (event.category === 'quantrong') {
+                bgStyle = 'background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;';
+            }
+
+            const card = document.createElement('div');
+            card.className = `event-card ${statusClass}`;
+            if(bgStyle) card.setAttribute('style', bgStyle); // Ép kiểu style nền trực tiếp
+
+            card.innerHTML = `
+                <div class="event-info">
+                    <h3>${event.title}</h3>
+                    <p style="font-weight: 600; color: #475569; margin-bottom: 4px;">${categoryText}</p>
+                    <p>Hạn tới: <b>${formattedDate}</b></p>
+                    ${repeatText}
+                </div>
+                <div class="countdown-display">
+                    <span class="days-left">${statusText}</span>
+                    <div class="action-btns">
+                        <button class="edit-btn" onclick="startEditEvent(${event.id})">✏️ Sửa</button>
+                        <button class="delete-btn" onclick="deleteEvent(${event.id})">🗑️ Xóa</button>
+                    </div>
+                </div>
+            `;
+            listElement.appendChild(card);
+        });
+        switchView(currentView);
+    }
+</script>
+</body>
+</html>
