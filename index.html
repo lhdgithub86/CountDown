@@ -61,6 +61,9 @@
         .toolbar-buttons { display: flex; gap: 10px; }
         .view-btn, .sync-manual-btn { width: auto; padding: 8px 16px; background-color: #e2e8f0; color: #475569; border: none; font-weight: 600; border-radius: 6px; cursor: pointer; }
         .view-btn.active { background: var(--primary-gradient); color: white; }
+        .sync-manual-btn.notify-on { background-color: #d1fae5; color: #065f46; }
+
+        .reminder-badge { display: inline-block; background-color: #fff7ed; color: #c2410c; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-top: 8px; margin-left: 6px; border: 1px solid #fed7aa; }
         
         .events-list { display: grid; gap: 15px; }
         .events-list.grid-view { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
@@ -160,7 +163,10 @@
     </div>
 
     <div class="toolbar">
-        <button class="sync-manual-btn" onclick="fetchFromCloud()">🔄 Đồng bộ dữ liệu</button>
+        <div class="toolbar-buttons">
+            <button class="sync-manual-btn" onclick="fetchFromCloud()">🔄 Đồng bộ dữ liệu</button>
+            <button id="notifyBtn" class="sync-manual-btn" onclick="requestNotificationPermission()">🔔 Bật thông báo nhắc hẹn</button>
+        </div>
         <div class="toolbar-buttons">
             <button id="listViewBtn" class="view-btn active" onclick="switchView('list')">📛 Dạng Dòng</button>
             <button id="gridViewBtn" class="view-btn" onclick="switchView('grid')">🎴 Dạng Thẻ</button>
@@ -177,6 +183,7 @@
     let supabaseClient = null;
 
     window.onload = function() {
+        updateNotifyBtnUI();
         const savedUrl = localStorage.getItem('sb_url');
         const savedKey = localStorage.getItem('sb_key');
         if(savedUrl && savedKey) {
@@ -231,6 +238,80 @@
         } catch (err) {
             showSyncStatus("❌ Lỗi đồng bộ: " + err.message, "sync-failed");
         }
+    }
+
+    // ==== PHẦN NHẮC NHỞ THEO MỐC 30 / 15 / 5 / 1 NGÀY ====
+    const REMINDER_MILESTONES = [30, 15, 5, 1];
+
+    function updateNotifyBtnUI() {
+        const btn = document.getElementById('notifyBtn');
+        if (!btn) return;
+        if ('Notification' in window && Notification.permission === 'granted') {
+            btn.innerText = '🔔 Đã bật thông báo';
+            btn.classList.add('notify-on');
+        } else {
+            btn.innerText = '🔔 Bật thông báo nhắc hẹn';
+            btn.classList.remove('notify-on');
+        }
+    }
+
+    function requestNotificationPermission() {
+        if (!('Notification' in window)) {
+            alert('Trình duyệt của bạn không hỗ trợ thông báo (Notification API).');
+            return;
+        }
+        if (Notification.permission === 'granted') {
+            alert('Thông báo đã được bật rồi! App sẽ tự nhắc khi còn 30, 15, 5, 1 ngày tới hạn (mỗi khi bạn mở tab này).');
+            return;
+        }
+        Notification.requestPermission().then(permission => {
+            updateNotifyBtnUI();
+            if (permission === 'granted') {
+                new Notification('🔔 Đã bật nhắc hẹn!', {
+                    body: 'Bạn sẽ được nhắc khi sự kiện còn 30, 15, 5 hoặc 1 ngày nữa tới hạn.'
+                });
+            } else {
+                alert('Bạn đã từ chối quyền thông báo. Có thể bật lại trong cài đặt trình duyệt.');
+            }
+        });
+    }
+
+    function getNotifiedLog() {
+        return JSON.parse(localStorage.getItem('countdown_notified_log') || '{}');
+    }
+
+    function saveNotifiedLog(log) {
+        localStorage.setItem('countdown_notified_log', JSON.stringify(log));
+    }
+
+    // Kiểm tra từng sự kiện đã tính toán (có daysLeft, computedTargetDate) và bắn thông báo
+    // nếu daysLeft trùng mốc 30/15/5/1 và chưa nhắc cho lần đến hạn này.
+    function checkAndNotifyReminders(processedEvents) {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+        const log = getNotifiedLog();
+        let changed = false;
+
+        processedEvents.forEach(event => {
+            if (!REMINDER_MILESTONES.includes(event.daysLeft)) return;
+
+            // Khóa nhắc nhở gắn với: id sự kiện + ngày đến hạn cụ thể (để sự kiện lặp lại vẫn được nhắc lại ở chu kỳ sau)
+            const occurrenceKey = `${event.id}_${event.computedTargetDate.toISOString().slice(0,10)}`;
+            const notifiedMilestones = log[occurrenceKey] || [];
+
+            if (!notifiedMilestones.includes(event.daysLeft)) {
+                const categoryText = event.category === 'giayto' ? 'Giấy tờ' : 'Ngày quan trọng';
+                new Notification(`⏰ Còn ${event.daysLeft} ngày: ${event.title}`, {
+                    body: `${categoryText} — hạn tới: ${event.computedTargetDate.toLocaleDateString('vi-VN')}`,
+                    tag: occurrenceKey + '_' + event.daysLeft
+                });
+                notifiedMilestones.push(event.daysLeft);
+                log[occurrenceKey] = notifiedMilestones;
+                changed = true;
+            }
+        });
+
+        if (changed) saveNotifiedLog(log);
     }
 
     function toggleRepeatUnit() {
@@ -421,6 +502,8 @@
 
         processedEvents.sort((a, b) => a.daysLeft - b.daysLeft);
 
+        checkAndNotifyReminders(processedEvents);
+
         processedEvents.forEach(event => {
             let statusClass = 'safe';
             let statusText = `Còn ${event.daysLeft} ngày`;
@@ -437,6 +520,11 @@
             if (event.repeatUnit !== 'none') {
                 const unitMap = { days: 'Ngày', weeks: 'Tuần', months: 'Tháng', years: 'Năm' };
                 repeatText = `<span class="repeat-badge">🔁 Mỗi ${event.repeatValue} ${unitMap[event.repeatUnit]}</span>`;
+            }
+
+            let reminderText = '';
+            if (REMINDER_MILESTONES.includes(event.daysLeft)) {
+                reminderText = `<span class="reminder-badge">⏰ Mốc nhắc ${event.daysLeft} ngày</span>`;
             }
 
             let bgStyle = '';
@@ -458,6 +546,7 @@
                     <p style="font-weight: 600; color: #475569; margin-bottom: 4px;">${categoryText}</p>
                     <p>Hạn tới: <b>${formattedDate}</b></p>
                     ${repeatText}
+                    ${reminderText}
                 </div>
                 <div class="countdown-display">
                     <span class="days-left">${statusText}</span>
