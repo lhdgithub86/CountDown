@@ -82,6 +82,26 @@
         .toolbar-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
         .view-btn, .sync-manual-btn { width: auto; padding: 8px 16px; background-color: #e2e8f0; color: #475569; border: none; font-weight: 600; border-radius: 6px; cursor: pointer; }
         .view-btn.active { background: var(--primary-gradient); color: white; }
+
+        /* Nhóm nút chuyển dạng hiển thị theo icon (list / grid / compact) */
+        .view-toggle-group {
+            display: inline-flex;
+            background: #e2e8f0;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 2px;
+        }
+        .view-toggle-group .view-btn {
+            background: transparent;
+            color: #64748b;
+            padding: 7px 11px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .view-toggle-group .view-btn.active { background: var(--primary-gradient); color: white; }
+        .view-toggle-group .view-btn:hover:not(.active) { background: #cbd5e1; }
         .sync-manual-btn.notify-on { background-color: #d1fae5; color: #065f46; }
         .filter-toolbar { margin-bottom: 20px; }
         .filter-select {
@@ -101,6 +121,32 @@
         
         .events-list { display: grid; gap: 15px; }
         .events-list.grid-view { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+
+        /* Dạng Tối giản: hàng thấp, ẩn chi tiết phụ, ưu tiên hiện nhiều mục trên màn hình */
+        .events-list.compact-view { gap: 6px; }
+        .events-list.compact-view .event-card {
+            padding: 8px 14px;
+            border-left-width: 4px;
+            min-height: unset;
+        }
+        .events-list.compact-view .event-info h3 {
+            font-size: 14px;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .events-list.compact-view .event-info p,
+        .events-list.compact-view .repeat-badge,
+        .events-list.compact-view .reminder-badge {
+            display: none;
+        }
+        .events-list.compact-view .countdown-display { gap: 8px; }
+        .events-list.compact-view .days-left { font-size: 13px; white-space: nowrap; }
+        .events-list.compact-view .edit-btn,
+        .events-list.compact-view .delete-btn { padding: 5px 8px; }
+        .events-list.compact-view .btn-label { display: none; }
+        .events-list.compact-view .event-card::after { width: 44px; height: 44px; right: 2px; bottom: 2px; }
         .event-card { background-color: var(--card-bg); padding: 20px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #3b82f6; position: relative; overflow: hidden; }
         .events-list.grid-view .event-card { flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 160px; border-left: none; border-top: 6px solid #3b82f6; }
 
@@ -275,8 +321,17 @@
             </select>
         </div>
         <div class="toolbar-buttons">
-            <button id="listViewBtn" class="view-btn active" onclick="switchView('list')">📛 Dạng Dòng</button>
-            <button id="gridViewBtn" class="view-btn" onclick="switchView('grid')">🎴 Dạng Thẻ</button>
+            <div class="view-toggle-group">
+                <button id="listViewBtn" class="view-btn active" onclick="switchView('list')" title="Dạng Dòng">
+                    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+                </button>
+                <button id="gridViewBtn" class="view-btn" onclick="switchView('grid')" title="Dạng Thẻ">
+                    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+                </button>
+                <button id="compactViewBtn" class="view-btn" onclick="switchView('compact')" title="Dạng Tối Giản">
+                    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="5" x2="20" y2="5"/><line x1="4" y1="9.5" x2="20" y2="9.5"/><line x1="4" y1="14" x2="20" y2="14"/><line x1="4" y1="18.5" x2="20" y2="18.5"/></svg>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -484,15 +539,15 @@
         currentView = viewType;
         localStorage.setItem('countdown_view_pref', viewType);
         const listElement = document.getElementById('eventsList');
-        if (viewType === 'grid') {
-            listElement.classList.add('grid-view');
-            document.getElementById('gridViewBtn').classList.add('active');
-            document.getElementById('listViewBtn').classList.remove('active');
-        } else {
-            listElement.classList.remove('grid-view');
-            document.getElementById('listViewBtn').classList.add('active');
-            document.getElementById('gridViewBtn').classList.remove('active');
-        }
+
+        listElement.classList.remove('grid-view', 'compact-view');
+        if (viewType === 'grid') listElement.classList.add('grid-view');
+        else if (viewType === 'compact') listElement.classList.add('compact-view');
+
+        ['list', 'grid', 'compact'].forEach(v => {
+            const btn = document.getElementById(v + 'ViewBtn');
+            if (btn) btn.classList.toggle('active', v === viewType);
+        });
     }
 
     function handleSubmitEvent() {
@@ -731,8 +786,8 @@
                 <div class="countdown-display">
                     <span class="days-left">${statusText}</span>
                     <div class="action-btns">
-                        <button class="edit-btn" data-id="${event.id}">✏️ Sửa</button>
-                        <button class="delete-btn" data-id="${event.id}">🗑️ Xóa</button>
+                        <button class="edit-btn" data-id="${event.id}">✏️ <span class="btn-label">Sửa</span></button>
+                        <button class="delete-btn" data-id="${event.id}">🗑️ <span class="btn-label">Xóa</span></button>
                     </div>
                 </div>
             `;
