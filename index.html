@@ -23,6 +23,22 @@
         
         .sync-status { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 15px; padding: 6px; border-radius: 20px; display: none; }
         .sync-loading { background: #fef3c7; color: #d97706; }
+
+        /* Toast notification */
+        #toastContainer { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+        .toast { display: flex; align-items: center; gap: 8px; background: #ffffff; border-left: 4px solid var(--success-color); color: var(--text-main); padding: 12px 18px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); font-size: 14px; font-weight: 600; opacity: 0; transform: translateY(-15px); transition: opacity 0.25s ease, transform 0.25s ease; max-width: 90vw; }
+        .toast.toast-show { opacity: 1; transform: translateY(0); }
+        .toast.toast-error { border-left-color: var(--danger-color); }
+        .toast .toast-icon { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; background: var(--success-color); }
+        .toast.toast-error .toast-icon { background: var(--danger-color); }
+
+        /* Highlight vừa thêm/sửa - chỉ chạy khi thẻ lọt vào tầm nhìn lúc cuộn tới */
+        @keyframes newEventPulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+            70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .event-card.just-added.in-view { animation: newEventPulse 1.4s ease-out 2; }
         .sync-success { background: #d1fae5; color: #065f46; }
         .sync-failed { background: #fee2e2; color: #b91c1c; }
 
@@ -242,6 +258,8 @@
     </style>
 </head>
 <body>
+
+<div id="toastContainer"></div>
 
 <div class="container">
     <h1>📅 Trợ Lý Đếm Ngược Siêu Tốc Cloud</h1>
@@ -560,6 +578,24 @@
         return 'local-' + Date.now() + '-' + Math.random().toString(16).slice(2);
     }
 
+    let lastAddedEventId = null;
+
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `<span class="toast-icon">${type === 'success' ? '✓' : '!'}</span><span></span>`;
+        toast.querySelector('span:last-child').textContent = message;
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => toast.classList.add('toast-show'));
+
+        setTimeout(() => {
+            toast.classList.remove('toast-show');
+            setTimeout(() => toast.remove(), 300);
+        }, 2500);
+    }
+
     async function addEvent() {
         const title = document.getElementById('eventTitle').value.trim();
         const date = document.getElementById('eventDate').value;
@@ -589,14 +625,18 @@
             }
             const savedEvent = (data && data[0]) ? data[0] : { ...newEventPayload, id: generateLocalId() };
             events.push(savedEvent);
+            lastAddedEventId = savedEvent.id;
         } else {
             // Không có Supabase: lưu local với ID tự sinh an toàn
-            events.push({ ...newEventPayload, id: generateLocalId() });
+            const localEvent = { ...newEventPayload, id: generateLocalId() };
+            events.push(localEvent);
             localStorage.setItem('countdown_events_v3', JSON.stringify(events));
+            lastAddedEventId = localEvent.id;
         }
 
         renderEvents();
         resetForm();
+        showToast(`Đã thêm "${title}" thành công!`);
     }
 
     function startEditEvent(id) {
@@ -647,10 +687,11 @@
             const { error } = await supabaseClient.from('events')
                 .update({ title, date, category, repeatValue, repeatUnit })
                 .eq('id', editModeId);
-            if(error) alert('Lỗi cập nhật Cloud: ' + error.message);
+            if(error) { alert('Lỗi cập nhật Cloud: ' + error.message); return; }
         } else {
             localStorage.setItem('countdown_events_v3', JSON.stringify(events));
         }
+        showToast(`Đã cập nhật "${title}" thành công!`);
         resetForm();
     }
 
@@ -772,6 +813,9 @@
 
             const card = document.createElement('div');
             card.className = `event-card ${statusClass} cat-${event.category}`;
+            if (lastAddedEventId !== null && String(event.id) === String(lastAddedEventId)) {
+                card.classList.add('just-added');
+            }
 
             // Dùng data-id + addEventListener thay vì nhúng trực tiếp id vào chuỗi onclick,
             // để tránh vỡ cú pháp khi id là UUID (có ký tự "-")
@@ -800,6 +844,29 @@
             listElement.appendChild(card);
         });
         switchView(currentView);
+        observeNewCardHighlight();
+    }
+
+    let newCardObserver = null;
+
+    function observeNewCardHighlight() {
+        if (lastAddedEventId === null) return;
+        const card = document.querySelector('.event-card.just-added');
+        if (!card) return;
+
+        if (newCardObserver) newCardObserver.disconnect();
+
+        newCardObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                    newCardObserver.disconnect();
+                    lastAddedEventId = null;
+                }
+            });
+        }, { threshold: 0.5 });
+
+        newCardObserver.observe(card);
     }
 </script>
 </body>
