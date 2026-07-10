@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trợ Lý Đếm Ngược Siêu Tốc (Supabase Cloud)</title>
+    <title>Trợ Lý Đếm Ngược</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -242,6 +242,8 @@
         .event-info h3 { margin: 0 0 8px 0; color: #0f172a; font-size: 1.1rem; }
         .event-info p { margin: 0; font-size: 13px; color: #64748b; }
         .repeat-badge { display: inline-block; background-color: #f0fdf4; color: #166534; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-top: 8px; border: 1px solid #bbf7d0; }
+        .tag-chip { display: inline-block; background-color: #f1f5f9; color: #475569; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; margin-top: 8px; margin-right: 5px; border: 1px solid #e2e8f0; }
+        .events-list.compact-view .tag-chip { display: none; }
         
         .countdown-display { text-align: right; display: flex; align-items: center; gap: 15px; }
         .events-list.grid-view .countdown-display { width: 100%; justify-content: space-between; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
@@ -286,7 +288,7 @@
 <div id="toastContainer"></div>
 
 <div class="container">
-    <h1>📅 Trợ Lý Đếm Ngược Siêu Tốc Cloud</h1>
+    <h1>📅 Trợ Lý Đếm Ngược</h1>
     <div id="syncStatusBox" class="sync-status"></div>
 
     <div class="form-container">
@@ -328,6 +330,10 @@
                         <option value="years">Năm</option>
                     </select>
                 </div>
+            </div>
+            <div style="flex: 1 1 100%;">
+                <label for="eventTags">Tag (tuỳ chọn, cách nhau bằng dấu phẩy)</label>
+                <input type="text" id="eventTags" placeholder="Ví dụ: xe máy, Ba, xe hơi...">
             </div>
             <div>
                 <button class="btn-add" id="submitEventBtn" onclick="handleSubmitEvent()">Thêm</button>
@@ -634,11 +640,17 @@
         }, 2500);
     }
 
+    function parseTagsInput(rawValue) {
+        if (!rawValue) return '';
+        return rawValue.split(',').map(t => t.trim()).filter(Boolean).join(', ');
+    }
+
     async function addEvent() {
         const title = document.getElementById('eventTitle').value.trim();
         const date = document.getElementById('eventDate').value;
         const category = document.getElementById('eventCategory').value;
         const repeatType = document.getElementById('repeatType').value;
+        const tags = parseTagsInput(document.getElementById('eventTags').value);
 
         let repeatValue = 0, repeatUnit = 'none';
         if (repeatType === 'custom') {
@@ -648,7 +660,7 @@
 
         if (!title || !date) { alert('Vui lòng điền đầy đủ thông tin!'); return; }
 
-        const newEventPayload = { title, date, category, repeatValue, repeatUnit };
+        const newEventPayload = { title, date, category, repeatValue, repeatUnit, tags };
 
         if (supabaseClient) {
             // KHÔNG tự gán id ở client nữa: để Supabase tự sinh (thường là UUID)
@@ -658,7 +670,7 @@
                 .insert([newEventPayload])
                 .select();
             if (error) {
-                alert('Lỗi đẩy dữ liệu lên Cloud: ' + error.message);
+                alert('Lỗi đẩy dữ liệu lên Cloud: ' + error.message + '\n\nLưu ý: bảng "events" trên Supabase cần có thêm cột "tags" kiểu text. Chạy lệnh SQL:\nALTER TABLE events ADD COLUMN tags text DEFAULT \'\';');
                 return;
             }
             const savedEvent = (data && data[0]) ? data[0] : { ...newEventPayload, id: generateLocalId() };
@@ -686,6 +698,7 @@
         document.getElementById('eventTitle').value = target.title;
         document.getElementById('eventDate').value = target.date;
         document.getElementById('eventCategory').value = target.category;
+        document.getElementById('eventTags').value = target.tags || '';
 
         if (target.repeatUnit && target.repeatUnit !== 'none') {
             document.getElementById('repeatType').value = 'custom';
@@ -707,6 +720,7 @@
         const date = document.getElementById('eventDate').value;
         const category = document.getElementById('eventCategory').value;
         const repeatType = document.getElementById('repeatType').value;
+        const tags = parseTagsInput(document.getElementById('eventTags').value);
         let repeatValue = 0, repeatUnit = 'none';
         if (repeatType === 'custom') {
             repeatValue = parseInt(document.getElementById('repeatValue').value) || 1;
@@ -715,7 +729,7 @@
 
         events = events.map(e => {
             if(String(e.id) === String(editModeId)) {
-                return { ...e, title, date, category, repeatValue, repeatUnit };
+                return { ...e, title, date, category, repeatValue, repeatUnit, tags };
             }
             return e;
         });
@@ -723,9 +737,9 @@
 
         if(supabaseClient) {
             const { error } = await supabaseClient.from('events')
-                .update({ title, date, category, repeatValue, repeatUnit })
+                .update({ title, date, category, repeatValue, repeatUnit, tags })
                 .eq('id', editModeId);
-            if(error) { alert('Lỗi cập nhật Cloud: ' + error.message); return; }
+            if(error) { alert('Lỗi cập nhật Cloud: ' + error.message + '\n\nLưu ý: bảng "events" trên Supabase cần có thêm cột "tags" kiểu text. Chạy lệnh SQL:\nALTER TABLE events ADD COLUMN tags text DEFAULT \'\';'); return; }
         } else {
             localStorage.setItem('countdown_events_v3', JSON.stringify(events));
         }
@@ -738,6 +752,7 @@
         document.getElementById('eventTitle').value = '';
         document.getElementById('eventDate').value = '';
         document.getElementById('eventCategory').value = 'giayto';
+        document.getElementById('eventTags').value = '';
         document.getElementById('repeatType').value = 'none';
         toggleRepeatUnit();
         const submitBtn = document.getElementById('submitEventBtn');
@@ -977,6 +992,12 @@
                 reminderText = `<span class="reminder-badge">⏰ Mốc nhắc ${event.daysLeft} ngày</span>`;
             }
 
+            const tagList = (event.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+            let tagsContainerHtml = '';
+            if (tagList.length > 0) {
+                tagsContainerHtml = `<div class="tags-container"></div>`;
+            }
+
             const card = document.createElement('div');
             card.className = `event-card ${statusClass} cat-${event.category}`;
             if (lastAddedEventId !== null && String(event.id) === String(lastAddedEventId)) {
@@ -992,6 +1013,7 @@
                     <p>Hạn tới: <b>${formattedDate}</b></p>
                     ${repeatText}
                     ${reminderText}
+                    ${tagsContainerHtml}
                 </div>
                 <div class="countdown-display">
                     <span class="days-left">${statusText}</span>
@@ -1004,6 +1026,17 @@
             `;
             // Gán tên sự kiện bằng textContent để tránh lỗi XSS nếu tiêu đề chứa ký tự đặc biệt (<, >, ")
             card.querySelector('.event-info h3').textContent = event.title;
+
+            // Gán từng tag bằng textContent (không dùng innerHTML) để tránh XSS từ nội dung tag tự do
+            if (tagList.length > 0) {
+                const tagsContainer = card.querySelector('.tags-container');
+                tagList.forEach(tag => {
+                    const chip = document.createElement('span');
+                    chip.className = 'tag-chip';
+                    chip.textContent = `#${tag}`;
+                    tagsContainer.appendChild(chip);
+                });
+            }
 
             card.querySelector('.complete-btn').addEventListener('click', () => completeEvent(event.id));
             card.querySelector('.edit-btn').addEventListener('click', () => startEditEvent(event.id));
